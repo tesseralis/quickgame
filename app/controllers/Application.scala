@@ -20,7 +20,7 @@ object Application extends Controller {
 
   def gameIndex(gameName: String) = Action {
     if (gameName == "tictactoe") {
-      Ok("Welcome to our tic-tac-toe page!")
+      Ok(views.html.gameIndex(gameName))
     } else {
       NotFound("Sorry, this game hasn't been implemented yet.")
     }
