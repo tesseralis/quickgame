@@ -4,6 +4,7 @@ import scala.util.Random
 
 import play.api._
 import play.api.mvc._
+import play.api.libs.iteratee._
 import play.api.libs.json._
 import play.api.libs.concurrent._
 
@@ -34,8 +35,14 @@ object Application extends Controller {
     }
   }
 
-  def stream(gameName: String, id: String) = TODO
-//  def stream(gameName: String, id: String) = WebSocket.async[JsValue] { request =>
-//    Promise.pure(0)
-//  }
+  def stream(gameName: String, id: String) = WebSocket.async[String] { request =>
+
+    val in = Iteratee.foreach[String](println).mapDone { _ =>
+      println("Disconnected")
+    }
+
+    val out = Enumerator("Hello!")
+
+    Promise.pure((in, out))
+  }
 }
