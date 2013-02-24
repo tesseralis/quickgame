@@ -14,19 +14,16 @@ import akka.pattern.ask
 import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
 
-class ChatRoom(val id: String) extends Actor {
+object ChatRoom {
   implicit val timeout = Timeout(1.second)
-  var members = Set.empty[String]
-  val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
-
-  def join(username: String): scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
-    (self ? Join(username)).map {
+  def join(room: ActorRef, username: String): scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
+    (room ? Join(username)).map {
       case Connected(enumerator) =>
         // Create an Iteratee to consume the feed
         val iteratee = Iteratee.foreach[JsValue] { event =>
-          self ! Talk(username, (event \ "text").as[String])
+          room ! Talk(username, (event \ "text").as[String])
         }.mapDone { _ =>
-          self ! Quit(username)
+          room ! Quit(username)
         }
 
         (iteratee, enumerator)
@@ -39,6 +36,13 @@ class ChatRoom(val id: String) extends Actor {
         (iteratee, enumerator)
     }
   }
+  
+}
+
+class ChatRoom(val id: String) extends Actor {
+  var members = Set.empty[String]
+  val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
+
 
   def receive = {
     case Join(username) => {
@@ -62,6 +66,7 @@ class ChatRoom(val id: String) extends Actor {
     case Quit(username) => {
       members = members - username
       notifyAll("quit", username, "has left the room")
+      // TODO: destroy chatroom when all users have left.
     }
   }
 
