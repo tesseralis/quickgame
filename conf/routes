@@ -4,6 +4,10 @@
 
 # Home page
 GET     /                           controllers.Application.index
+# Display landing page for a game
+GET     /:gameName                  controllers.Application.gameIndex(gameName)
+# Display a single game
+GET     /:gameName/:id              controllers.Application.game(gameName, id)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)
