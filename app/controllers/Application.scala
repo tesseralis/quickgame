@@ -45,8 +45,10 @@ object Application extends Controller {
 
   def game(gameName: String, id: String) = Action {
     if (gameTypes contains gameName) {
-      games.get(id).map { _ =>
-        Ok(views.html.tictactoe(id))
+      games.get(id).map { _ => gameName match {
+          case "tictactoe" => Ok(views.html.tictactoe(id))
+          case "chat" => Ok(views.html.chat(id))
+        }
       } getOrElse {
         NotFound("Game not found")
       }
