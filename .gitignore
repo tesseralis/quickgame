@@ -13,4 +13,6 @@ project/plugins/project/
 .classpath
 .scala_dependencies
 .cache
+.project
 .target/
+.settings/
