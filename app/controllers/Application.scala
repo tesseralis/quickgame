@@ -1,5 +1,7 @@
 package controllers
 
+import scala.util.Random
+
 import play.api._
 import play.api.mvc._
 import play.api.libs.json._
@@ -9,6 +11,11 @@ object Application extends Controller {
   
   def index = Action {
     Ok(views.html.index("Your new application is ready."))
+  }
+
+  def newGame(gameName: String) = Action {
+    val id: String = Random.alphanumeric.take(5).mkString
+    Redirect(routes.Application.game(gameName, id))
   }
 
   def gameIndex(gameName: String) = Action {
