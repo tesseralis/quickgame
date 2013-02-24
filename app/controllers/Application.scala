@@ -14,23 +14,29 @@ import models.TicTacToe
 object Application extends Controller {
 
   val games: concurrent.Map[String, TicTacToe] = new concurrent.TrieMap[String, TicTacToe]()
+
+  val gameTypes = Set("tictactoe", "chat")
   
   def index = Action {
     Ok(views.html.index("Your new application is ready."))
   }
 
   def newGame(gameName: String) = Action {
-    var id = "";
-    do {
-      id = Random.alphanumeric.take(5).mkString
-    } while (games.contains(id))
+    if (gameTypes contains gameName) {
+      var id = "";
+      do {
+        id = Random.alphanumeric.take(5).mkString
+      } while (games.contains(id))
 
-    games(id) = TicTacToe.empty
-    Redirect(routes.Application.game(gameName, id))
+      games(id) = TicTacToe.empty
+      Redirect(routes.Application.game(gameName, id))
+    } else {
+      NotFound("Game not implemented")
+    }
   }
 
   def gameIndex(gameName: String) = Action {
-    if (gameName == "tictactoe") {
+    if (gameTypes contains gameName) {
       Ok(views.html.gameIndex(gameName))
     } else {
       NotFound("Sorry, this game hasn't been implemented yet.")
@@ -38,7 +44,7 @@ object Application extends Controller {
   }
 
   def game(gameName: String, id: String) = Action {
-    if (gameName == "tictactoe") {
+    if (gameTypes contains gameName) {
       games.get(id).map { _ =>
         Ok(views.html.tictactoe(id))
       } getOrElse {
