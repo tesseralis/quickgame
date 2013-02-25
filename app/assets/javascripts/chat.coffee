@@ -25,7 +25,7 @@ receiveMessage = (json) ->
 		messageType['default'](jsonObject)
 
 $(document).ready ->
-	socket = new WebSocket(websocketurl document.URL, 'soap')
+	socket = new WebSocket(wsURL)
 	socket.onmessage = (e) ->
 		receiveMessage e.data
 	socket.onopen = () ->

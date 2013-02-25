@@ -1,9 +1,10 @@
-@(id: String, username: String)
+@(id: String, username: String)(implicit request: RequestHeader)
 
 @game("Chat") {
 <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/chat.css")">
 <script>
-var username = "@username"
+//var username = "@username"
+var wsURL = '@routes.Application.stream("chat", id, username).webSocketURL()';
 </script>
 <div class="row">
 	<h1 class="span8 offset4">Chat Room #@id</h1>

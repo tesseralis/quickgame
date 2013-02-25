@@ -31,7 +31,8 @@ object Application extends Controller {
 
       val actor = Akka.system.actorOf(Props(new ChatRoom(id)))
       games = games.updated(gameName, games(gameName).updated(id, actor))
-      Redirect(routes.Application.game(gameName, id))
+      // TODO Add username parameter for creating the chat room
+      Redirect(routes.Application.game(gameName, id, None))
     } else {
       NotFound("Game not implemented")
     }
@@ -45,14 +46,15 @@ object Application extends Controller {
     }
   }
 
-  def game(gameName: String, id: String, username: Option[String]) = Action {
+  def game(gameName: String, id: String, username: Option[String]) = Action { implicit request =>
     // use a random username if none is given.
-    val username1 = username getOrElse Random.alphanumeric.take(10).mkString
     if (games contains gameName) {
-      games(gameName).get(id).map { _ => gameName match {
-        case "tictactoe" => Ok(views.html.chat(id, username1))
-        case "chat" => Ok(views.html.chat(id, username1))
-      }
+      games(gameName).get(id).map { _ => 
+        val username1 = username getOrElse Random.alphanumeric.take(10).mkString
+        gameName match {
+          case "tictactoe" => Ok(views.html.chat(id, username1))
+          case "chat" => Ok(views.html.chat(id, username1))
+        }
       } getOrElse {
         NotFound("Game not found")
       }
