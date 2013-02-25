@@ -28,7 +28,14 @@ $(document).ready ->
 	socket.onopen = () ->
 		#
 	$('#submitButton').bind 'click', (event) =>
+		sendMessage()
+	$('#messageText').bind 'keypress', (e) =>
+		if e.which == 13
+        	sendMessage()
+
+	sendMessage = () ->
 		dialog = $("#messageText")
 		text = JSON.stringify({text: dialog.val()})
 		socket.send(text)
 		dialog.val("")
+
