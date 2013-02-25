@@ -32,6 +32,6 @@ $(document).ready ->
 		#
 	$('#submitButton').bind 'click', (event) =>
 		dialog = $("#messageText")
-		text = JSON.stringify({text: dialog.text()})
+		text = JSON.stringify({text: dialog.val()})
 		socket.send(text)
-		dialog.text("")
+		dialog.val("")
