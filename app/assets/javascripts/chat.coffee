@@ -1,6 +1,10 @@
 
 append = (message) ->
-	$("#chattext").append("<p>"+message+"</p>")
+	chattext = $("#chattext")
+	newline = $('<p>').text(message)
+	chattext.append(newline)
+	chattext.scrollTop(chattext.height())
+	$('html, body').scrollTop($(document).height()-$(window).height());
 
 messageType = {}
 messageType["join"] = (joinMap) ->

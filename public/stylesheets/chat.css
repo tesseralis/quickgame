@@ -1,6 +1,12 @@
 .chatwindow {
-    min-height: 500px;
-	height:auto !important; 
-    height: 500px;
-    overflow: scroll;
+    height: 100%;
+    margin-bottom: 50px;
+}
+
+.messageBar {
+	position: fixed;
+	bottom: 0px;
+	float: bottom;
+	margin-right: auto;
+	margin-left: auto;
 }
