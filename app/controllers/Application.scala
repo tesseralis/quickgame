@@ -45,11 +45,13 @@ object Application extends Controller {
     }
   }
 
-  def game(gameName: String, id: String) = Action {
+  def game(gameName: String, id: String, username: Option[String]) = Action {
+    // use a random username if none is given.
+    val username1 = username getOrElse Random.alphanumeric.take(10).mkString
     if (games contains gameName) {
       games(gameName).get(id).map { _ => gameName match {
-        case "tictactoe" => Ok(views.html.chat(id))
-        case "chat" => Ok(views.html.chat(id))
+        case "tictactoe" => Ok(views.html.chat(id, username1))
+        case "chat" => Ok(views.html.chat(id, username1))
       }
       } getOrElse {
         NotFound("Game not found")
@@ -59,9 +61,9 @@ object Application extends Controller {
     }
   }
 
-  def stream(gameName: String, id: String) = WebSocket.async[JsValue] { request =>
+  def stream(gameName: String, id: String, username: String) = WebSocket.async[JsValue] { request =>
     if (games.contains(gameName) && games(gameName).contains(id)) {
-      ChatRoom.join(games(gameName)(id), Random.alphanumeric.take(10).mkString)
+      ChatRoom.join(games(gameName)(id), username)
     } else {
       throw new Error("TODO this should be replaced by something nicer.")
     }
