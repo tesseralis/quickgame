@@ -1,1 +1,18 @@
 @(id: String)
+
+@game("Chat") {
+<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/chat.css")">
+<div class="row">
+	<h1 class="span8 offset4">Chat Room #@id</h1>
+</div>
+
+<div class="row">
+	<div id="chattext" class="chatwindow">Hey</div>
+</div>
+<div class="row">
+	<input id="messageText" class="span8">
+	<button id="submitButton" class="btn">Submit</button>
+</div>
+
+<script src="@routes.Assets.at("javascripts/chat.js")"></script>
+}
