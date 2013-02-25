@@ -2,9 +2,6 @@
 append = (message) ->
 	$("#chattext").append("<p>"+message+"</p>")
 
-websocketurl = (url) ->
-	(url.replace /http/, "ws") + "/stream?username="+username
-
 messageType = {}
 messageType["join"] = (joinMap) ->
 	append joinMap.user + " " +joinMap.message
