@@ -40,8 +40,10 @@ $(document).ready ->
         	sendMessage()
 	sendMessage = () ->
 		dialog = $("#messageText")
-		text = JSON.stringify({text: dialog.val()})
-		socket.send(text)
-		dialog.val("")
+		message = dialog.val()
+		if message.length > 0
+			text = JSON.stringify({text: message})
+			socket.send(text)
+			dialog.val("")
 	$("#messageText").focus()
 
