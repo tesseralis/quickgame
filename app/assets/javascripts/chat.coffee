@@ -5,13 +5,10 @@ append = (message) ->
 messageType = {}
 messageType["join"] = (joinMap) ->
 	append joinMap.user + " " +joinMap.message
-	# console.log joinMap
 messageType["talk"] = (talkMap) ->
 	append talkMap.user + " : " +talkMap.message
-	# console.log talkMap
 messageType['default'] = (defaultMap) ->
-	append "Does not know what to do with "+defaultMap.kind
-	# console.log defaultMap
+	append defaultMap.user + " " +defaultMap.message
 
 receiveMessage = (json) ->
 	jsonObject = $.parseJSON(json)
@@ -26,7 +23,7 @@ $(document).ready ->
 	socket.onmessage = (e) ->
 		receiveMessage e.data
 	socket.onopen = () ->
-		#
+		append "Welcome to the chat room!"
 	$('#submitButton').bind 'click', (event) =>
 		sendMessage()
 	$('#messageText').bind 'keypress', (e) =>
