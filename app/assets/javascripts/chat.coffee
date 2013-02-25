@@ -5,13 +5,13 @@ append = (message) ->
 messageType = {}
 messageType["join"] = (joinMap) ->
 	append joinMap.user + " " +joinMap.message
-	console.log joinMap
+	# console.log joinMap
 messageType["talk"] = (talkMap) ->
 	append talkMap.user + " : " +talkMap.message
-	console.log talkMap
+	# console.log talkMap
 messageType['default'] = (defaultMap) ->
 	append "Does not know what to do with "+defaultMap.kind
-	console.log defaultMap
+	# console.log defaultMap
 
 receiveMessage = (json) ->
 	jsonObject = $.parseJSON(json)
