@@ -27,8 +27,14 @@ receiveMessage = (json) ->
 	else
 		messageType['default'](jsonObject)
 
+changePort = (url,newPort) ->
+	tag = document.createElement('a')
+	tag.href = url
+	tag.port = newPort
+	return tag.href
+
 $(document).ready ->
-	socket = new WebSocket(wsURL)
+	socket = new WebSocket(changePort(wsURL,9000))
 	socket.onmessage = (e) ->
 		receiveMessage e.data
 	socket.onopen = () ->
