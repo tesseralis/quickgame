@@ -12,60 +12,54 @@ import play.api.libs.json._
 import play.api.libs.concurrent._
 
 import models._
+import models.GameType._
 
 object Application extends Controller {
 
   // TODO perhaps a GameManager actor that keeps track of the current games
-  var games: Map[String, Map[String, ActorRef]] = Map("tictactoe" -> Map.empty, "chat" -> Map.empty)
+  //var games: Map[String, Map[String, ActorRef]] = Map("tictactoe" -> Map.empty, "chat" -> Map.empty)
+  var games: Map[GameType, Map[String, ActorRef]] = Map(
+    Chat -> Map.empty,
+    Tictactoe -> Map.empty
+  )
+
   
   def index = Action {
     Ok(views.html.index("Your new application is ready."))
   }
 
-  def newGame(gameName: String) = Action {
-    if (games contains gameName) {
-      var id = "";
-      do {
-        id = Random.alphanumeric.take(5).mkString
-      } while (games(gameName).contains(id))
+  def newGame(g: GameType) = Action {
+    var id = "";
+    do {
+      id = Random.alphanumeric.take(5).mkString
+    } while (games(g).contains(id))
 
-      val actor = Akka.system.actorOf(Props(new ChatRoom(id)))
-      games = games.updated(gameName, games(gameName).updated(id, actor))
-      // TODO Add username parameter for creating the chat room
-      Redirect(routes.Application.game(gameName, id, None))
-    } else {
-      NotFound("Game not implemented")
-    }
+    val actor = Akka.system.actorOf(Props(new ChatRoom(id)))
+    games = games.updated(g, games(g).updated(id, actor))
+    // TODO Add username parameter for creating the chat room
+    Redirect(routes.Application.game(g, id, None))
   }
 
-  def gameIndex(gameName: String) = Action {
-    if (games contains gameName) {
-      Ok(views.html.gameIndex(gameName))
-    } else {
-      NotFound("Sorry, this game hasn't been implemented yet.")
-    }
+  def gameIndex(g: GameType) = Action {
+    Ok(views.html.gameIndex(g))
   }
 
-  def game(gameName: String, id: String, username: Option[String]) = Action { implicit request =>
+  def game(g: GameType, id: String, username: Option[String]) = Action { implicit request =>
     // use a random username if none is given.
-    if (games contains gameName) {
-      games(gameName).get(id).map { _ => 
-        val username1 = username getOrElse Random.alphanumeric.take(10).mkString
-        gameName match {
-          case "tictactoe" => Ok(views.html.chat(id, username1))
-          case "chat" => Ok(views.html.chat(id, username1))
-        }
-      } getOrElse {
-        NotFound("Game not found")
+    games(g).get(id).map { _ => 
+      val username1 = username getOrElse Random.alphanumeric.take(10).mkString
+      g match {
+        case Tictactoe => Ok(views.html.chat(id, username1))
+        case Chat => Ok(views.html.chat(id, username1))
       }
-    } else {
-      NotFound("Page not found")
+    } getOrElse {
+      NotFound("Game not found")
     }
   }
 
-  def stream(gameName: String, id: String, username: String) = WebSocket.async[JsValue] { request =>
-    if (games.contains(gameName) && games(gameName).contains(id)) {
-      ChatRoom.join(games(gameName)(id), username)
+  def stream(g: GameType, id: String, username: String) = WebSocket.async[JsValue] { request =>
+    if (games(g).contains(id)) {
+      ChatRoom.join(games(g)(id), username)
     } else {
       throw new Error("TODO this should be replaced by something nicer.")
     }

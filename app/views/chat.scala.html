@@ -4,7 +4,7 @@
 <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/chat.css")">
 <script>
 //var username = "@username"
-var wsURL = '@routes.Application.stream("chat", id, username).webSocketURL()';
+var wsURL = '@routes.Application.stream(models.Chat, id, username).webSocketURL()';
 </script>
 
 <div class="container">
