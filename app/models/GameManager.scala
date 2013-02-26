@@ -57,9 +57,9 @@ object GameManager {
       case Connected(enumerator) =>
         // Create an Iteratee to consume the feed
         val iteratee = Iteratee.foreach[JsValue] { event =>
-          //room ! Talk(username, (event \ "text").as[String])
+          default ! PassMessage(g, id, Talk(username, (event \ "text").as[String]))
         }.mapDone { _ =>
-          //room ! Quit(username)
+          default ! PassMessage(g, id, Quit(username))
         }
 
         (iteratee, enumerator)
@@ -99,9 +99,19 @@ class GameManager extends Actor {
         sender ! CannotConnect(s"Cannot find the $g game #$id.")
       }
     }
+    case PassMessage(g, id, msg) => {
+      games.get((g, id)) map { room =>
+        room ! msg
+      } getOrElse {
+        sender ! RoomNotFound(s"Cannot find $g/$id")
+      }
+    }
   }
 }
 
 case class CreateGame(g: GameType)
 case class JoinGame(g: GameType, id: String, username: String)
 case class ContainsGame(g: GameType, id: String)
+case class PassMessage(g: GameType, id: String, msg: Any)
+
+case class RoomNotFound(msg: String)
