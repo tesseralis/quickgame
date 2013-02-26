@@ -20,7 +20,10 @@ object ChatRoom {
     (room ? Join(username)).map {
       case Connected(enumerator) =>
         // Create an Iteratee to consume the feed
-        val iteratee = Iteratee.foreach[JsValue] { event =>
+        val iteratee = Iteratee.foreach[JsValue] { event => (event \ "type").as[String] match {
+          case "talk" => room ! Talk(username, (event \ "text").as[String])
+          // case "turn" => room ! Turn(???)
+        }
           room ! Talk(username, (event \ "text").as[String])
         }.mapDone { _ =>
           room ! Quit(username)
@@ -40,5 +43,5 @@ object ChatRoom {
 }
 
 class ChatRoom(val id: String) extends GameRoom {
-  
+
 }
