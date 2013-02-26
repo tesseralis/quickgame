@@ -9,7 +9,9 @@ import akka.actor._
 import akka.util.Timeout
 import akka.pattern.ask
 
+import play.api.libs.json._
 import play.api.libs.concurrent._
+import play.api.libs.iteratee._
 import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
@@ -38,12 +40,27 @@ object GameManager {
   /**
    * Join an existing game.
    */
-  //def join(gameName: String, id: String): 
-  //    scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
-  //  (default ? JoinGame(gameName, id)) map {
-  //    case Connected
-  //  }
-  //}
+  def join(gameName: String, id: String):
+      scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
+    (default ? JoinGame(gameName, id)).map {
+      case Connected(enumerator) =>
+        // Create an Iteratee to consume the feed
+        val iteratee = Iteratee.foreach[JsValue] { event =>
+          //room ! Talk(username, (event \ "text").as[String])
+        }.mapDone { _ =>
+          //room ! Quit(username)
+        }
+
+        (iteratee, enumerator)
+
+      case CannotConnect(error) =>
+        // Connection error
+        val iteratee = Done[JsValue, Unit]((), Input.EOF)
+        val enumerator = Enumerator[JsValue](JsObject(Seq("error" -> JsString(error)))).andThen(Enumerator.enumInput(Input.EOF))
+
+        (iteratee, enumerator)
+    }
+  }
 }
 
 /**

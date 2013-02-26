@@ -1,6 +1,7 @@
 package controllers
 
-import scala.util.Random
+import scala.util._
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import akka.actor._
 
@@ -10,6 +11,7 @@ import play.api.mvc._
 import play.api.libs.iteratee._
 import play.api.libs.json._
 import play.api.libs.concurrent._
+import play.api.mvc.BodyParsers._
 
 import models._
 import models.GameType._
@@ -22,11 +24,22 @@ object Application extends Controller {
     Chat -> Map.empty,
     Tictactoe -> Map.empty
   )
-
   
   def index = Action {
     Ok(views.html.index("Your new application is ready."))
   }
+  //def newGame2(gameName: String) = Action {
+  //  val result = GameManager.create(gameName)
+  //  Async {
+  //    result.map { idOpt =>
+  //      idOpt.map { id =>
+  //        Redirect(routes.Application.game(gameName, id, None))
+  //      } getOrElse {
+  //        NotFound("Game Not Implemented.")
+  //      }
+  //    }
+  //  }
+  //}
 
   def newGame(g: GameType) = Action {
     var id = "";
@@ -56,6 +69,9 @@ object Application extends Controller {
       NotFound("Game not found")
     }
   }
+  //def stream2(gameName: String, id: String, username: String) = WebSocket.async[JsValue] { request =>
+  //  GameManager.join(gameName, id)
+  //}
 
   def stream(g: GameType, id: String, username: String) = WebSocket.async[JsValue] { request =>
     if (games(g).contains(id)) {
@@ -63,6 +79,5 @@ object Application extends Controller {
     } else {
       throw new Error("TODO this should be replaced by something nicer.")
     }
-    
   }
 }
