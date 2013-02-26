@@ -17,29 +17,43 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.Play.current
 
 object GameManager {
+  type WebSocket[A] = (Iteratee[A, _], Enumerator[A])
   implicit val timeout = Timeout(1.second)
-  lazy val default = Akka.system.actorOf(Props[GameManager])
+  private[this] lazy val default = Akka.system.actorOf(Props[GameManager])
 
   /**
-   * Create a new game and return the generated id
+   * Create a new random ID string.
    */
-  def create(g: GameType): Future[Option[String]] = {
-    (default ? CreateGame(g)) map {
-      case Created(id) => Some(id)
-    }
-  }
-
   def generateId(isNew: String => Boolean): String = {
     val id = Random.alphanumeric.take(5).mkString
     if (isNew(id)) id else generateId(isNew)
   }
 
   /**
+   * Create a new game and return the generated id.
+   */
+  def create(g: GameType): Future[String] = {
+    // bit of a hack to enforce string
+    (default ? CreateGame(g)) map { case Symbol(id) => id }
+  }
+
+  /**
+   * Check whether a game of the specified type and id exists.
+   */
+  def contains(g: GameType, id: String): Future[Boolean] = {
+    default ? ContainsGame(g, id) map {
+      case true => true
+      case _ => false
+    }
+  }
+
+  /**
    * Join an existing game.
    */
-  def join(g: GameType, id: String):
-      scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
-    (default ? JoinGame(g, id)).map {
+  def join(g: GameType, id: String, username: String): Future[WebSocket[JsValue]] = {
+
+    // TODO Delegate this to the child classes
+    (default ? JoinGame(g, id, username)).map {
       case Connected(enumerator) =>
         // Create an Iteratee to consume the feed
         val iteratee = Iteratee.foreach[JsValue] { event =>
@@ -64,22 +78,30 @@ object GameManager {
  * The singular object responsible for managing all our games.
  */
 class GameManager extends Actor {
+  implicit val timeout = Timeout(1.second)
   // Mapping from game ids to gameroom references
-  var games: Map[String, ActorRef] = Map.empty
+  var games: Map[(GameType, String), ActorRef] = Map.empty
 
   // TODO override the supervisor strategy
 
   def receive = {
     case CreateGame(g) => {
-      val id = GameManager.generateId(!games.contains(_))
+      val id = GameManager.generateId(id => !games.contains((g, id)))
       // TODO: Different game types
-      games = games.updated(id, Akka.system.actorOf(Props(new ChatRoom(id))))
-      sender ! Created(id)
+      games += ((g, id) -> Akka.system.actorOf(Props(new ChatRoom(id))))
+      sender ! Symbol(id)
+    }
+    case ContainsGame(g, id) => sender ! games.contains((g, id))
+    case JoinGame(g, id, username) => {
+      games.get((g, id)) map { room =>
+        (room ? Join(username)) map { result => sender ! result }
+      } getOrElse {
+        sender ! CannotConnect(s"Cannot find the $g game #$id.")
+      }
     }
   }
 }
 
 case class CreateGame(g: GameType)
-case class JoinGame(g: GameType, id: String)
-
-case class Created(id: String)
+case class JoinGame(g: GameType, id: String, username: String)
+case class ContainsGame(g: GameType, id: String)

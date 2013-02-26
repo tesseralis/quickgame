@@ -14,7 +14,6 @@ import play.api.libs.concurrent._
 import play.api.mvc.BodyParsers._
 
 import models._
-import models.GameType._
 
 object Application extends Controller {
 
@@ -28,18 +27,6 @@ object Application extends Controller {
   def index = Action {
     Ok(views.html.index("Your new application is ready."))
   }
-  //def newGame2(gameName: String) = Action {
-  //  val result = GameManager.create(gameName)
-  //  Async {
-  //    result.map { idOpt =>
-  //      idOpt.map { id =>
-  //        Redirect(routes.Application.game(gameName, id, None))
-  //      } getOrElse {
-  //        NotFound("Game Not Implemented.")
-  //      }
-  //    }
-  //  }
-  //}
 
   def newGame(g: GameType) = Action {
     var id = "";
@@ -52,6 +39,7 @@ object Application extends Controller {
     // TODO Add username parameter for creating the chat room
     Redirect(routes.Application.game(g, id, None))
   }
+
 
   def gameIndex(g: GameType) = Action {
     Ok(views.html.gameIndex(g))
@@ -69,9 +57,6 @@ object Application extends Controller {
       NotFound("Game not found")
     }
   }
-  //def stream2(gameName: String, id: String, username: String) = WebSocket.async[JsValue] { request =>
-  //  GameManager.join(gameName, id)
-  //}
 
   def stream(g: GameType, id: String, username: String) = WebSocket.async[JsValue] { request =>
     if (games(g).contains(id)) {
@@ -80,4 +65,33 @@ object Application extends Controller {
       throw new Error("TODO this should be replaced by something nicer.")
     }
   }
+
+  def newGame2(g: GameType) = Action {
+    Async {
+      GameManager.create(g).map { id =>
+        Redirect(routes.Application.game(g, id, None))
+      }
+    }
+  }
+
+  def game2(g: GameType, id: String, username: Option[String]) = Action { implicit request =>
+    Async {
+      GameManager.contains(g, id) map { gameFound =>
+        if (gameFound) {
+          val username1 = username getOrElse Random.alphanumeric.take(10).mkString
+          g match {
+            case Tictactoe => Ok(views.html.chat(id, username1))
+            case Chat => Ok(views.html.chat(id, username1))
+          }
+        } else {
+          NotFound(s"Could not find $g game #$id")
+        }
+      }
+    }
+  }
+
+  def stream2(g: GameType, id: String, username: String) = WebSocket.async[JsValue] { request =>
+    GameManager.join(g, id, username)
+  }
+
 }
