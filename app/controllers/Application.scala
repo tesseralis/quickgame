@@ -17,8 +17,10 @@ import models._
 
 object Application extends Controller {
 
-  // TODO perhaps a GameManager actor that keeps track of the current games
-  //var games: Map[String, Map[String, ActorRef]] = Map("tictactoe" -> Map.empty, "chat" -> Map.empty)
+  val gameManager: GameManager = TypedActor(Akka.system).typedActorOf(
+    TypedProps[GameManagerImpl]()
+  )
+    
   var games: Map[GameType, Map[String, ActorRef]] = Map(
     Chat -> Map.empty,
     Tictactoe -> Map.empty
@@ -32,45 +34,9 @@ object Application extends Controller {
     Ok(views.html.gameIndex(g))
   }
 
-  //def newGame(g: GameType) = Action {
-  //  var id = "";
-  //  do {
-  //    id = Random.alphanumeric.take(5).mkString
-  //  } while (games(g).contains(id))
-
-  //  val actor = Akka.system.actorOf(Props(new ChatRoom(id)))
-  //  games = games.updated(g, games(g).updated(id, actor))
-  //  // TODO Add username parameter for creating the chat room
-  //  Redirect(routes.Application.game(g, id, None))
-  //}
-
-
-
-  //def game(g: GameType, id: String, username: Option[String]) = Action { implicit request =>
-  //  // use a random username if none is given.
-  //  games(g).get(id).map { _ => 
-  //    val username1 = username getOrElse Random.alphanumeric.take(10).mkString
-  //    g match {
-  //      case Tictactoe => Ok(views.html.chat(id, username1))
-  //      case Chat => Ok(views.html.chat(id, username1))
-  //    }
-  //  } getOrElse {
-  //    NotFound("Game not found")
-  //  }
-  //}
-
-  //def stream(g: GameType, id: String, username: String) = WebSocket.async[JsValue] { request =>
-  //  if (games(g).contains(id)) {
-  //    ChatRoom.join(games(g)(id), username)
-  //  } else {
-  //    throw new Error("TODO this should be replaced by something nicer.")
-  //  }
-  //}
-
   def newGame(g: GameType) = Action {
     Async {
-      GameManager.create(g).map { id =>
-        Logger.debug(s"Created $g/$id")
+      gameManager.create(g).map { id =>
         Redirect(routes.Application.game(g, id, None))
       }
     }
@@ -78,7 +44,7 @@ object Application extends Controller {
 
   def game(g: GameType, id: String, username: Option[String]) = Action { implicit request =>
     Async {
-      GameManager.contains(g, id) map { gameFound =>
+      gameManager.contains(g, id) map { gameFound =>
         if (gameFound) {
           val username1 = username getOrElse Random.alphanumeric.take(10).mkString
           g match {
@@ -93,8 +59,7 @@ object Application extends Controller {
   }
 
   def stream(g: GameType, id: String, username: String) = WebSocket.async[JsValue] { request =>
-    Logger.debug(s"Joined $g/$id with as $username")
-    GameManager.join(g, id, username)
+    gameManager.join(g, id, username)
   }
 
 }
