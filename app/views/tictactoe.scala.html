@@ -1,6 +1,29 @@
-@(id: String)
+@(id: String, username: String)(implicit request: RequestHeader)
 
 @game("Tic Tac Toe") {
-	<h1>Tic Tac Toe Game #@id</h1>
-	<b>Yay!!!</b>
+<script>
+  var wsURL = '@routes.Application.stream(models.Tictactoe, id, username).webSocketURL()'
+</script>
+
+<p id="message"></p>
+
+<div id="board">
+  <div class="0">
+    <span class="0"></span>
+    <span class="1"></span>
+    <span class="2"></span>
+  </div>
+  <div class="1">
+    <span class="0"></span>
+    <span class="1"></span>
+    <span class="2"></span>
+  </div>
+  <div class="2">
+    <span class="0"></span>
+    <span class="1"></span>
+    <span class="2"></span>
+  </div>
+</div>
+
+<script src='@routes.Assets.at("javascripts/tictactoe.js")'></script>
 }
