@@ -54,51 +54,32 @@ trait GameManager {
 }
 
 class GameManagerImpl extends GameManager {
-  val actor = {
-    val ctx = TypedActor.context
-    ctx.actorOf(Props[GameManagerActor])
-  }
+  val ctx = TypedActor.context
 
-
-  override def create(g: GameType) = (actor ? CreateGame(g)).mapTo[String]
-
-  override def contains(g: GameType, id: String) = (actor ? ContainsGame(g, id)).mapTo[Boolean]
-
-  override def join(g: GameType, id: String, username: String) =
-    (actor ? JoinGame(g, id, username)).mapTo[WebSocket[JsValue]]
-}
-
-class GameManagerActor extends Actor {
   var games: Map[(GameType, String), ActorRef] = Map.empty
 
-  def receive = {
-    case CreateGame(g) =>
-      val id = generateId(id => !games.contains((g, id)))
-      games += ((g, id) -> Akka.system.actorOf(Props(new ChatRoom(id))))
-      Logger.debug(s"Creating $g/$id")
-      sender ! id
-
-    case ContainsGame(g, id) => sender ! games.contains((g, id))
-
-    case JoinGame(g, id, username) =>
-      games.get((g, id)) map { room =>
-        Logger.debug(s"Join: Found $g/$id")
-        (room ? Join(username)) map {
-          case Connected(enumerator) => {
-            Logger.debug(s"Join: Connected to $g/$id as $username")
-            val iteratee = Iteratee.foreach[JsValue] { event =>
-              room ! Talk(username, (event \ "text").as[String])
-            }.mapDone { _ =>
-              room ! Quit(username)
-            }
-            (iteratee, enumerator)
-          }
-          case CannotConnect(error) => errorWebSocket(error)
-        }
-      } getOrElse {
-        Logger.debug(s"Join: Could not find $g/$id")
-        errorWebSocket(s"Could not find $g/$id")
-      }
+  override def create(g: GameType) = Future {
+    val id = generateId(id => !games.contains((g, id)))
+    games += ((g, id) -> ctx.actorOf(Props(new ChatRoom(id))))
+    id
   }
-}
 
+  override def contains(g: GameType, id: String) = Future { games.contains((g, id)) }
+
+  override def join(g: GameType, id: String, username: String) =
+    games.get((g, id)) map { room =>
+      (room ? Join(username)) map {
+        case Connected(enumerator) => {
+          val iteratee = Iteratee.foreach[JsValue] { event =>
+            room ! Talk(username, (event \ "text").as[String])
+          }.mapDone { _ =>
+            room ! Quit(username)
+          }
+          (iteratee, enumerator)
+        }
+        case CannotConnect(error) => errorWebSocket(error)
+      }
+    } getOrElse {
+      Future(errorWebSocket(s"Could not find $g/$id"))
+    }
+}
