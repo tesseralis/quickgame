@@ -23,9 +23,11 @@ object TicTacToeRoom {
     (room ? Join(username)).map {
       case Connected(enumerator) =>
         // Create an Iteratee to consume the feed
-        val iteratee = Iteratee.foreach[JsValue] { event => (event \ "type").as[String] match {
+        val iteratee = Iteratee.foreach[JsValue] { event => (event \ "kind").as[String] match {
           case "talk" => room ! Talk(username, (event \ "text").as[String])
-          // case "turn" => room ! Turn(???)
+          case "turn" => 
+            Logger.debug("got" + event)
+            room ! TicTacToeTurn(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
         }
           room ! Talk(username, (event \ "text").as[String])
         }.mapDone { _ =>
@@ -65,6 +67,7 @@ class TicTacToeRoom(val id: String) extends GameRoom {
       }
 
     case TicTacToeTurn(username, move) =>
+      Logger.debug(username + " " + move)
       if(players contains username) {
         val playerNumber = players(username)
         if(playerNumber == currentPlayer) {
@@ -78,20 +81,18 @@ class TicTacToeRoom(val id: String) extends GameRoom {
                 case Draw(_) => 
                   notifyAll("status",username,"The game is a draw.")
                 case _ =>
-                  val jsonBoard = Json.toJson(
-                    for(tile <- gameBoard.board) yield Map(
-                        "row" -> tile._1._1,
-                        "col" -> tile._1._2,
-                        "player" -> tile._2
-                      )
-                  )
+                  val jsonBoard = JsArray(for (i <- 0 until 3) yield {
+                    JsArray(for (j <- 0 until 3) yield {
+                      JsString(gameBoard.board.get((i, j)).map((x: Int) => x.toString).getOrElse(""))
+                    })
+                  })
                   val msg = JsObject(
                     Seq(
                       "kind" -> JsString("state"),
                       "user" -> JsString(username),
                       "message" -> JsString("This is the current state of the game."),
                       "members" -> JsArray(members.toList.map(JsString)),
-                      "state" -> jsonBoard
+                      "board" -> jsonBoard
                     )
                   )
                   chatChannel.push(msg)

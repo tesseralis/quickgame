@@ -2,27 +2,29 @@ $(document).ready ->
   socket = new WebSocket(wsURL)
 
   # Send a turn through the socket
-  sendTurn = (i, j) ->
-    text = JSON.stringify {type: 'turn', i, j}
+  sendTurn = (row, col) ->
+    text = JSON.stringify {kind: 'turn', row, col}
     socket.send text
+
+  for i in [0...3]
+    for j in [0...3]
+      do (i, j) -> $("##{i}#{j}").click ->
+        console.log i, j
+        sendTurn i, j
 
   # Draw the board from the specified board state
   renderBoard = (board) ->
     for i in [0...3]
       for j in [0...3]
-        $("#board .#{i} .#{j}")
-          .text(board[i][j])
-          .click -> unless board[i][j] in 'xo' then sendTurn i, j
+        $("##{i}#{j}").text(board[i][j])
 
   # Socket message callback
   socket.onmessage = (msg) ->
-    data = $.parseJSON msg
-    renderBoard data.board
-    switch data.type
-      when 'turn'
+    data = $.parseJSON msg.data
+    switch data.kind
+      when 'state'
         $('#message').text "It is #{data.player}'s turn"
-      when 'win'
-        $('#message').text "The winner is #{data.player}"
-      when 'draw'
-        $('#message').text "The game is a draw!"
+        renderBoard data.board
+      when 'status'
+        $('#message').text data.text
 
