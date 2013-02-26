@@ -14,13 +14,6 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
-/**
- * This class contains an enumeration on the games we have available.
- */
-object GameType extends Enumeration {
-  type GameType = Value
-  val Chat, TicTacToe = Value
-}
 import GameType._
 
 object GameManager {
