@@ -1,45 +1,47 @@
 package models
 
+import akka.actor._
+import scala.concurrent.duration._
+
+import play.api._
+import play.api.libs.json._
+import play.api.libs.iteratee._
+import play.api.libs.concurrent._
+
+import akka.util.Timeout
+import akka.pattern.ask
+
+import play.api.Play.current
+import play.api.libs.concurrent.Execution.Implicits._
+
 object TicTacToe {
-  type Pos = (Int, Int)
-  type Player = Int
-  type Board = Map[Pos, Player]
-  
-  /**
-   * Create an empty tic-tac-toe board
-   */
-  def empty: TicTacToe = Turn(Map.empty, 0)
-  
-  def nextPlayer(p: Player): Player = 1 - p
-  def outOfBounds(pos: Pos) = {
-    val (i, j) = pos
-    i < 0 || i >= 3 || j < 0 || j >= 3
-  }
-}
+  implicit val timeout = Timeout(1.second)
+  def join(room: ActorRef, username: String): scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
+    (room ? Join(username)).map {
+      case Connected(enumerator) =>
+        // Create an Iteratee to consume the feed
+        val iteratee = Iteratee.foreach[JsValue] { event =>
+          room ! Talk(username, (event \ "text").as[String])
+        }.mapDone { _ =>
+          room ! Quit(username)
+        }
 
-import TicTacToe._
+        (iteratee, enumerator)
 
-trait TicTacToe {
-  def board: Board
-}
+      case CannotConnect(error) =>
+        // Connection error
+        val iteratee = Done[JsValue, Unit]((), Input.EOF)
+        val enumerator = Enumerator[JsValue](JsObject(Seq("error" -> JsString(error)))).andThen(Enumerator.enumInput(Input.EOF))
 
-case class Turn(board: Board, currentPlayer: Player) extends TicTacToe {
-  def move(pos: Pos): TicTacToe = {
-    assert(board.contains(pos) || outOfBounds(pos))
-    val newBoard = board updated (pos, currentPlayer)
-    val (i, j) = pos
-    // TODO Diagonals
-    if ((0 until 3).forall(newBoard(_, j) == currentPlayer) ||
-        (0 until 3).forall(newBoard(i, _) == currentPlayer)) {
-      Win(newBoard, currentPlayer)
-    } else if (newBoard.size == 3 * 3) {
-      Draw(newBoard)
-    }else {
-      copy(board = newBoard,
-           currentPlayer = nextPlayer(currentPlayer))
+        (iteratee, enumerator)
     }
   }
+  
 }
 
-case class Win(board: Board, player: Player) extends TicTacToe
-case class Draw(board: Board) extends TicTacToe
+class TicTacToe(val id: String) extends GameRoom {
+  override def receive = super.receive orElse {
+    case _ => 
+  }
+}
+
