@@ -1,6 +1,6 @@
-package models
-
 import play.api.mvc.PathBindable
+
+import models.GameType
 
 package object binders {
   implicit object bindableGameType extends PathBindable.Parsing[GameType](
