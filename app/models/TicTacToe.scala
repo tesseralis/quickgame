@@ -28,7 +28,7 @@ trait TicTacToeModel {
 
 case class Turn(board: Board, currentPlayer: Player) extends TicTacToeModel {
   def move(pos: Pos): Try[TicTacToeModel] = Try {
-    assert(board.contains(pos) || outOfBounds(pos))
+    assert(board.contains(pos) || outOfBounds(pos), "Please make a valid move.")
     val newBoard = board updated (pos, currentPlayer)
     val (i, j) = pos
     // TODO Diagonals

@@ -19,7 +19,6 @@ trait GameRoom extends Actor {
   var members = Set.empty[String]
   val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
 
-
   def receive = {
     case Join(username) => {
       if(members.contains(username)) {

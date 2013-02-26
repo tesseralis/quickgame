@@ -15,15 +15,13 @@ import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
 
 object ChatRoom {
-  implicit val timeout = Timeout(1.second)
+  implicit val timeout = Timeout(10.second)
+
   def join(room: ActorRef, username: String): scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
     (room ? Join(username)).map {
       case Connected(enumerator) =>
         // Create an Iteratee to consume the feed
-        val iteratee = Iteratee.foreach[JsValue] { event => (event \ "type").as[String] match {
-          case "talk" => room ! Talk(username, (event \ "text").as[String])
-          // case "turn" => room ! Turn(???)
-        }
+        val iteratee = Iteratee.foreach[JsValue] { event =>
           room ! Talk(username, (event \ "text").as[String])
         }.mapDone { _ =>
           room ! Quit(username)

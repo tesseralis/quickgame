@@ -1,0 +1,110 @@
+package models
+
+import scala.util.{Try, Success, Failure}
+
+import akka.actor._
+import scala.concurrent.duration._
+
+import play.api._
+import play.api.libs.json._
+import play.api.libs.iteratee._
+import play.api.libs.concurrent._
+
+import akka.util.Timeout
+import akka.pattern.ask
+
+import play.api.Play.current
+import play.api.libs.concurrent.Execution.Implicits._
+
+object TicTacToeRoom {
+  implicit val timeout = Timeout(1.second)
+
+  def join(room: ActorRef, username: String): scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
+    (room ? Join(username)).map {
+      case Connected(enumerator) =>
+        // Create an Iteratee to consume the feed
+        val iteratee = Iteratee.foreach[JsValue] { event => (event \ "type").as[String] match {
+          case "talk" => room ! Talk(username, (event \ "text").as[String])
+          // case "turn" => room ! Turn(???)
+        }
+          room ! Talk(username, (event \ "text").as[String])
+        }.mapDone { _ =>
+          room ! Quit(username)
+        }
+
+        (iteratee, enumerator)
+
+      case CannotConnect(error) =>
+        // Connection error
+        val iteratee = Done[JsValue, Unit]((), Input.EOF)
+        val enumerator = Enumerator[JsValue](JsObject(Seq("error" -> JsString(error)))).andThen(Enumerator.enumInput(Input.EOF))
+
+        (iteratee, enumerator)
+    }
+  }
+  
+}
+
+class TicTacToeRoom(val id: String) extends GameRoom {
+  var gameBoard = TicTacToeModel.empty
+  var players = Map[String,Int]()
+  var currentPlayer = 0
+  def ticTacToeMessage : PartialFunction[Any, Unit] = {
+
+    case join @ Join(username) =>
+      super.receive(join)
+      var possible = players.values.toSet diff Set(0,1)
+      if (possible.size > 0) {
+        players += (username -> possible.head)
+      }
+
+    case quit @ Quit(username) =>
+      super.receive(quit)
+      if(players contains username) {
+       players -= username 
+      }
+
+    case TicTacToeTurn(username, move) =>
+      if(players contains username) {
+        val playerNumber = players(username)
+        if(playerNumber == currentPlayer) {
+          val newBoard = gameBoard.move(move)
+          newBoard match {
+            case Success(v) =>
+              gameBoard = v
+              v match {
+                case Win(_,_) =>
+                  notifyAll("status",username,username + " has won!")
+                case Draw(_) => 
+                  notifyAll("status",username,"The game is a draw.")
+                case _ =>
+                  val jsonBoard = Json.toJson(
+                    for(tile <- gameBoard.board) yield Map(
+                        "row" -> tile._1._1,
+                        "col" -> tile._1._2,
+                        "player" -> tile._2
+                      )
+                  )
+                  val msg = JsObject(
+                    Seq(
+                      "kind" -> JsString("state"),
+                      "user" -> JsString(username),
+                      "message" -> JsString("This is the current state of the game."),
+                      "members" -> JsArray(members.toList.map(JsString)),
+                      "state" -> jsonBoard
+                    )
+                  )
+                  chatChannel.push(msg)
+              }
+            case Failure(e) =>  
+              notifyAll("oops",username,username + " made a silly move")
+          }
+          
+        }
+      }
+
+  }
+  override def receive = ticTacToeMessage orElse super.receive
+}
+
+case class TicTacToeTurn(username: String, move: (Int,Int))
