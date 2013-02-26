@@ -9,68 +9,77 @@ import akka.actor._
 import akka.util.Timeout
 import akka.pattern.ask
 
+import play.api._
+import play.api.libs.json._
 import play.api.libs.concurrent._
+import play.api.libs.iteratee._
 import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
-import GameType._
 
 object GameManager {
-  implicit val timeout = Timeout(1.second)
-  lazy val default = Akka.system.actorOf(Props[GameManager])
+  case class CreateGame(g: GameType)
+  case class JoinGame(g: GameType, id: String, username: String)
+  case class ContainsGame(g: GameType, id: String)
 
-  /**
-   * Create a new game and return the generated id
-   */
-  def create(gameName: String): Future[Option[String]] = {
-    (default ? CreateGame(gameName)) map {
-      case Created(id) => Some(id)
-      case NotCreated => None
-    }
-  }
+  implicit val timeout = Timeout(10.seconds)
 
+  type WebSocket[A] = (Iteratee[A, _], Enumerator[A])
+  /** Create a new random ID string. */
   def generateId(isNew: String => Boolean): String = {
     val id = Random.alphanumeric.take(5).mkString
     if (isNew(id)) id else generateId(isNew)
   }
 
-  /**
-   * Join an existing game.
-   */
-  //def join(gameName: String, id: String): 
-  //    scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
-  //  (default ? JoinGame(gameName, id)) map {
-  //    case Connected
-  //  }
-  //}
-}
+  def errorWebSocket(error: String) = {
+    val iteratee = Done[JsValue, Unit]((), Input.EOF)
+    val enumerator = Enumerator[JsValue](JsObject(Seq("error" -> JsString(error)))).andThen(Enumerator.enumInput(Input.EOF))
 
-/**
- * The singular object responsible for managing all our games.
- */
-class GameManager extends Actor {
-  // Mapping from game ids to gameroom references
-  var games: Map[String, ActorRef] = Map.empty
-
-  // TODO override the supervisor strategy
-
-  def receive = {
-    case CreateGame(gameName) => {
-      Try(GameType withName gameName) match {
-        case Success(_) =>
-          val id = GameManager.generateId(!games.contains(_))
-          // TODO Generalize for different game types
-          games = games.updated(id, Akka.system.actorOf(Props(new ChatRoom(id))))
-          sender ! Created(id)
-        case Failure(e) => sender ! NotCreated
-      }
-    }
+    (iteratee, enumerator)
   }
 }
 
-case class CreateGame(gameName: String)
-case class JoinGame(gameName: String, id: String)
+import GameManager._
 
-case class Created(id: String)
-case object NotCreated
+trait GameManager {
+  /* Create a new game of the specified type. */
+  def create(g: GameType): Future[String]
+
+  /* Check whether the given game exists. */
+  def contains(g: GameType, id: String): Future[Boolean]
+
+  /* Join the given game. */
+  def join(g: GameType, id: String, username: String): Future[WebSocket[JsValue]]
+}
+
+class GameManagerImpl extends GameManager {
+  val ctx = TypedActor.context
+
+  var games: Map[(GameType, String), ActorRef] = Map.empty
+
+  override def create(g: GameType) = Future {
+    val id = generateId(id => !games.contains((g, id)))
+    games += ((g, id) -> ctx.actorOf(Props(new ChatRoom(id))))
+    id
+  }
+
+  override def contains(g: GameType, id: String) = Future { games.contains((g, id)) }
+
+  override def join(g: GameType, id: String, username: String) =
+    games.get((g, id)) map { room =>
+      (room ? Join(username)) map {
+        case Connected(enumerator) => {
+          val iteratee = Iteratee.foreach[JsValue] { event =>
+            room ! Talk(username, (event \ "text").as[String])
+          }.mapDone { _ =>
+            room ! Quit(username)
+          }
+          (iteratee, enumerator)
+        }
+        case CannotConnect(error) => errorWebSocket(error)
+      }
+    } getOrElse {
+      Future(errorWebSocket(s"Could not find $g/$id"))
+    }
+}
