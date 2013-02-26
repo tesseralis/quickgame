@@ -48,7 +48,7 @@ object Application extends Controller {
         if (gameFound) {
           val username1 = username getOrElse Random.alphanumeric.take(10).mkString
           g match {
-            case Tictactoe => Ok(views.html.chat(id, username1))
+            case Tictactoe => Ok(views.html.tictactoe(id, username1))
             case Chat => Ok(views.html.chat(id, username1))
           }
         } else {
