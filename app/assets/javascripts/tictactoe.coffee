@@ -1,4 +1,8 @@
 $(document).ready ->
+  board = $("#board")
+  $(window).resize ->
+    # board.resize($("#ttcontainer").width())
+    board.center()
   socket = new WebSocket(wsURL)
 
   # Send a turn through the socket
@@ -28,3 +32,27 @@ $(document).ready ->
       when 'status'
         $('#message').text data.text
 
+  board.resize = (newSize) ->
+    board.width newSize
+    board.height newSize
+    $('.tictac').each ->
+      $(this).width newSize/3-10
+      $(this).height newSize/3-10
+
+  board.selectTile = (player,row,column) ->
+    tile = $("##{row}#{column}")
+    style = ""
+    switch player
+      when 0 then style = "btn-success"
+      when 1 then style = "btn-danger"
+    tile.attr("class", tile.attr("class") + " " + style)
+
+
+  board.resize(Math.min($('body').height(),$('body').width()))
+  board.center()
+
+jQuery.fn.center = () ->
+    this.css("position","absolute");
+    this.css("top", ( $(window).height() - this.height() ) / 2+$(window).scrollTop() + "px");
+    this.css("left", ( $(window).width() - this.width() ) / 2+$(window).scrollLeft() + "px");
+    return this;

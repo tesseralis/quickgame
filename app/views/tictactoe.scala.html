@@ -1,29 +1,34 @@
 @(id: String, username: String)(implicit request: RequestHeader)
 
 @game("Tic Tac Toe") {
+<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/tictactoe.css")">
 <script>
   var wsURL = '@routes.Application.stream(models.Tictactoe, id, username).webSocketURL()'
 </script>
 
-<p id="message"></p>
 
+<div id="ttcontainer" class="container">
+
+<p id="message"></p>
 <div id="board">
-  <div>
-    <button id="00"></button>
-    <button id="01"></button>
-    <button id="02"></button>
+  <div class="ttrow">
+    <button class="btn btn-primary tictac" id="00"></button>
+    <button class="btn btn-primary tictac" id="01"></button>
+    <button class="btn btn-primary tictac" id="02"></button>
   </div>
-  <div>
-    <button id="10"></button>
-    <button id="11"></button>
-    <button id="12"></button>
+  <div class="ttrow">
+    <button class="btn btn-primary tictac" id="10"></button>
+    <button class="btn btn-primary tictac" id="11"></button>
+    <button class="btn btn-primary tictac" id="12"></button>
   </div>
-  <div>
-    <button id="20"></button>
-    <button id="21"></button>
-    <button id="22"></button>
+  <div class="ttrow">
+    <button class="btn btn-primary tictac" id="20"></button>
+    <button class="btn btn-primary tictac" id="21"></button>
+    <button class="btn btn-primary tictac" id="22"></button>
   </div>
 </div>
+</div>
+
 
 <script src='@routes.Assets.at("javascripts/tictactoe.js")'></script>
 }
