@@ -16,8 +16,6 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
-import GameType._
-
 object GameManager {
   implicit val timeout = Timeout(1.second)
   lazy val default = Akka.system.actorOf(Props[GameManager])
@@ -25,10 +23,9 @@ object GameManager {
   /**
    * Create a new game and return the generated id
    */
-  def create(gameName: String): Future[Option[String]] = {
-    (default ? CreateGame(gameName)) map {
+  def create(g: GameType): Future[Option[String]] = {
+    (default ? CreateGame(g)) map {
       case Created(id) => Some(id)
-      case NotCreated => None
     }
   }
 
@@ -40,9 +37,9 @@ object GameManager {
   /**
    * Join an existing game.
    */
-  def join(gameName: String, id: String):
+  def join(g: GameType, id: String):
       scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
-    (default ? JoinGame(gameName, id)).map {
+    (default ? JoinGame(g, id)).map {
       case Connected(enumerator) =>
         // Create an Iteratee to consume the feed
         val iteratee = Iteratee.foreach[JsValue] { event =>
@@ -73,21 +70,16 @@ class GameManager extends Actor {
   // TODO override the supervisor strategy
 
   def receive = {
-    case CreateGame(gameName) => {
-      Try(GameType withName gameName) match {
-        case Success(_) =>
-          val id = GameManager.generateId(!games.contains(_))
-          // TODO Generalize for different game types
-          games = games.updated(id, Akka.system.actorOf(Props(new ChatRoom(id))))
-          sender ! Created(id)
-        case Failure(e) => sender ! NotCreated
-      }
+    case CreateGame(g) => {
+      val id = GameManager.generateId(!games.contains(_))
+      // TODO: Different game types
+      games = games.updated(id, Akka.system.actorOf(Props(new ChatRoom(id))))
+      sender ! Created(id)
     }
   }
 }
 
-case class CreateGame(gameName: String)
-case class JoinGame(gameName: String, id: String)
+case class CreateGame(g: GameType)
+case class JoinGame(g: GameType, id: String)
 
 case class Created(id: String)
-case object NotCreated
