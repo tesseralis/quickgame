@@ -1,14 +1,5 @@
-table { 
-	empty-cells: show; 
-}
-
-.tictac {
-	width: 50px;
-	height: 50px;
-	margin-top: 4px;
-}
-
-.tictacwrapper {
-	/*width: 100px;*/
-	/*height: 100px;*/
+.ttt-tile {
+	border-style: solid;
+	border-width: 1px;
+	border-color: #FFFFFF
 }

@@ -4,11 +4,7 @@ $(document).ready ->
 
   board.eachTile (tile) ->
     tile.addClass("btn")
-    tile.css({
-      "border-style":"solid",
-      "border-width":"1px",
-      "border-color":"#FFFFFF"
-    })
+    tile.addClass("ttt-tile")
   
   $('#ttcontainer').append(board.toHTML())
 
