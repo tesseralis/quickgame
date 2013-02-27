@@ -88,5 +88,19 @@ trait GameRoom[State, Mov] extends Actor {
         }
       }
     }
+    case UpdateRole(username, role) => {
+      members.get(username) map { channel =>
+        // Remove player if invalid number is given
+        if (role <= 0 || role > maxPlayers) {
+          players -= username
+          notifyAll("update", username)
+        } else if (players.values.toSet.contains(role)) {
+          notify(username, "error", "That role is already taken.")
+        } else {
+          players += (username -> role)
+          notifyAll("update", username)
+        }
+      }
+    }
   }
 }
