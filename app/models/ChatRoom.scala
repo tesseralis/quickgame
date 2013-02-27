@@ -14,32 +14,52 @@ import akka.pattern.ask
 import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
 
-object ChatRoom {
-  implicit val timeout = Timeout(10.second)
 
-  def join(room: ActorRef, username: String): scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
-    (room ? Join(username)).map {
-      case Connected(enumerator) =>
-        // Create an Iteratee to consume the feed
-        val iteratee = Iteratee.foreach[JsValue] { event =>
-          room ! Talk(username, (event \ "text").as[String])
-        }.mapDone { _ =>
-          room ! Quit(username)
-        }
+class ChatRoom(val id: String) extends Actor {
+  var members = Set.empty[String]
+  val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
 
-        (iteratee, enumerator)
+  def iteratee(username: String): Iteratee[JsValue, _] =
+    Iteratee.foreach[JsValue] { event =>
+      Logger.debug(event.toString)
+      self ! Talk(username, (event \ "text").as[String])
+    } mapDone { _ =>
+      self ! Quit(username)
+    }
 
-      case CannotConnect(error) =>
-        // Connection error
-        val iteratee = Done[JsValue, Unit]((), Input.EOF)
-        val enumerator = Enumerator[JsValue](JsObject(Seq("error" -> JsString(error)))).andThen(Enumerator.enumInput(Input.EOF))
+  def receive = {
+    case Join(username) => {
+      if(members.contains(username)) {
+        sender ! CannotConnect("This username is already used")
+      } else {
+        members = members + username
+        sender ! Connected(iteratee(username), chatEnumerator)
+        notifyAll("join", username, "has entered the room")
+      }
+    }
 
-        (iteratee, enumerator)
+    case Talk(username, text) => {
+      notifyAll("talk", username, text)
+    }
+
+    case Quit(username) => {
+      members = members - username
+      notifyAll("quit", username, "has left the room")
+      // TODO: destroy gameroom when all users have left.
     }
   }
-  
-}
 
-class ChatRoom(val id: String) extends GameRoom {
-
+  def notifyAll(kind: String, user: String, text: String) {
+    val msg = JsObject(
+      Seq(
+        "kind" -> JsString(kind),
+        "user" -> JsString(user),
+        "message" -> JsString(text),
+        "members" -> JsArray(
+          members.toList.map(JsString)
+        )
+      )
+    )
+    chatChannel.push(msg)
+  }
 }

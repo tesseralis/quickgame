@@ -17,95 +17,130 @@ import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
 
 object TicTacToeRoom {
-  implicit val timeout = Timeout(1.second)
 
-  def join(room: ActorRef, username: String): scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
-    (room ? Join(username)).map {
-      case Connected(enumerator) =>
-        // Create an Iteratee to consume the feed
-        val iteratee = Iteratee.foreach[JsValue] { event => (event \ "kind").as[String] match {
-          case "talk" => room ! Talk(username, (event \ "text").as[String])
-          case "turn" => 
-            Logger.debug("got" + event)
-            room ! TicTacToeTurn(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
+  type Pos = (Int, Int)
+  type Player = Int
+  type Board = Map[Pos, Player]
+  
+  
+  def nextPlayer(p: Player): Player = 1 - p
+  def outOfBounds(pos: Pos) = {
+    val (i, j) = pos
+    i < 0 || i >= 3 || j < 0 || j >= 3
+  }
+
+  def winningMove(board: Board, move: Pos, player: Player): Boolean = {
+    val (row, col) = move
+    (0 until 3).forall(board(_, col) == player) ||
+      (0 until 3).forall(board(row, _) == player) ||
+      (0 until 3).forall(k => board(k, k) == player) ||
+      (0 until 3).forall(k => board(k, 2-k) == player)
+  }
+
+  trait State {
+    def board: Board
+    def move(player: Player, pos: Pos): Try[State] = this match {
+      case turn @ Turn(board, currentPlayer) => Try {
+        require(player == currentPlayer, "Wrong player.")
+        require(!board.contains(pos), "Invalid board position.")
+        require(!outOfBounds(pos), "Position out of bounds.")
+        val newBoard = board updated (pos, currentPlayer)
+        if (winningMove(newBoard, pos, currentPlayer)) {
+          Win(newBoard, currentPlayer)
+        } else if (newBoard.size == 3 * 3) {
+          Draw(newBoard)
+        } else {
+          turn.copy(board = newBoard, currentPlayer = nextPlayer(currentPlayer))
         }
-          room ! Talk(username, (event \ "text").as[String])
-        }.mapDone { _ =>
-          room ! Quit(username)
-        }
-
-        (iteratee, enumerator)
-
-      case CannotConnect(error) =>
-        // Connection error
-        val iteratee = Done[JsValue, Unit]((), Input.EOF)
-        val enumerator = Enumerator[JsValue](JsObject(Seq("error" -> JsString(error)))).andThen(Enumerator.enumInput(Input.EOF))
-
-        (iteratee, enumerator)
+      }
+      case _ => Failure(new Exception("The game is completed."))
     }
   }
-  
+
+  case class Turn(board: Board, currentPlayer: Player) extends State
+  case class Win(board: Board, player: Player) extends State
+  case class Draw(board: Board) extends State
+
+  case class Move(username: String, move: (Int,Int))
 }
 
-class TicTacToeRoom(val id: String) extends GameRoom {
-  var gameBoard = TicTacToeModel.empty
-  var players = Map[String,Int]()
-  var currentPlayer = 0
-  def ticTacToeMessage : PartialFunction[Any, Unit] = {
+import TicTacToeRoom._
 
-    case join @ Join(username) =>
-      super.receive(join)
-      var possible = players.values.toSet diff Set(0,1)
-      if (possible.size > 0) {
-        players += (username -> possible.head)
+class TicTacToeRoom(val id: String) extends Actor {
+  var gameState: State = Turn(Map.empty withDefaultValue -1, 0)
+  var players = Map[String,Int]()
+  var currentNumPlayers = 0
+  val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
+
+  def iteratee(username: String): Iteratee[JsValue, _] =
+    Iteratee.foreach[JsValue] { event => 
+      Logger.debug(event.toString)
+      (event \ "kind").as[String] match {
+        case "talk" => self ! Talk(username, (event \ "text").as[String])
+        case "turn" => {
+          Logger.debug((event\"row").as[Int] + " " + (event\"col").as[Int])
+          self ! Move(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
+        }
+      }
+    } mapDone { _ =>
+      self ! Quit(username)
+    }
+
+  def sendState(state: State) {
+    val (stateString, player) = state match {
+      case Turn(_, p) => ("turn", p)
+      case Win(_, p) => ("win", p)
+      case Draw(_) => ("draw", -1)
+    }
+    val jsonBoard = JsArray(for (i <- 0 until 3) yield {
+      JsArray(for (j <- 0 until 3) yield {
+        JsNumber(BigDecimal(state.board.get((i, j)).getOrElse(-1)))
+      })
+    })
+    val msg = Json.obj(
+      "kind" -> stateString,
+      "player" -> player,
+      "board" -> jsonBoard
+    )
+    Logger.debug(msg.toString)
+    chatChannel.push(msg)
+
+
+  }
+
+  override def receive = {
+    case Join(username) =>
+      if (players contains username) {
+        sender ! CannotConnect("This username is already used")
+      } else if (currentNumPlayers >= 2) {
+        sender ! CannotConnect("Too many players!")
+      } else {
+        players += (username -> currentNumPlayers)
+        currentNumPlayers += 1
+        sender ! Connected(iteratee(username), chatEnumerator)
       }
 
-    case quit @ Quit(username) =>
-      super.receive(quit)
-      if(players contains username) {
+    case Quit(username) =>
+      if (players contains username) {
        players -= username 
       }
 
-    case TicTacToeTurn(username, move) =>
+    case Move(username, move) =>
       Logger.debug(username + " " + move)
-      if(players contains username) {
-        val playerNumber = players(username)
-        if(playerNumber == currentPlayer) {
-          val newBoard = gameBoard.move(move)
-          newBoard match {
-            case Success(v) =>
-              gameBoard = v
-              v match {
-                case Win(_,_) =>
-                  notifyAll("status",username,username + " has won!")
-                case Draw(_) => 
-                  notifyAll("status",username,"The game is a draw.")
-                case _ =>
-                  val jsonBoard = JsArray(for (i <- 0 until 3) yield {
-                    JsArray(for (j <- 0 until 3) yield {
-                      JsString(gameBoard.board.get((i, j)).map((x: Int) => x.toString).getOrElse(""))
-                    })
-                  })
-                  val msg = JsObject(
-                    Seq(
-                      "kind" -> JsString("state"),
-                      "user" -> JsString(username),
-                      "message" -> JsString("This is the current state of the game."),
-                      "members" -> JsArray(members.toList.map(JsString)),
-                      "board" -> jsonBoard
-                    )
-                  )
-                  chatChannel.push(msg)
-              }
-            case Failure(e) =>  
-              notifyAll("oops",username,username + " made a silly move")
+      players.get(username) map { playerNumber =>
+        gameState.move(playerNumber, move) match {
+          case Failure(e) => {
+            Logger.debug(s"Bad move $move made by $username: $e")
           }
-          
+          case Success(newState) => {
+            Logger.debug(s"Valid move $move made by $username")
+            gameState = newState
+            sendState(gameState)
+          }
         }
+      } getOrElse {
+        Logger.debug(s"Unknown player $username")
       }
-
   }
-  override def receive = ticTacToeMessage orElse super.receive
 }
 
-case class TicTacToeTurn(username: String, move: (Int,Int))

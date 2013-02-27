@@ -6,30 +6,10 @@
   var wsURL = '@routes.Application.stream(models.Tictactoe, id, username).webSocketURL()'
 </script>
 
+<div class="container ">
 
-<div id="ttcontainer" class="container tictacwrapper">
-<!-- 
-<p id="message"></p>
-<div id="board">
-  <div class="ttrow">
-    <button class="btn tictac" id="00"></button>
-    <button class="btn tictac" id="01"></button>
-    <button class="btn tictac" id="02"></button>
-  </div>
-  <div class="ttrow">
-    <button class="btn tictac" id="10"></button>
-    <button class="btn tictac" id="11"></button>
-    <button class="btn tictac" id="12"></button>
-  </div>
-  <div class="ttrow">
-    <button class="btn tictac" id="20"></button>
-    <button class="btn tictac" id="21"></button>
-    <button class="btn tictac" id="22"></button>
-  </div>
-</div> -->
-</div>
-
-<!-- <div id="testBoard"></div> -->
+<!-- <div class="alert alert-success" id="message"></div> -->
+<div id="ttcontainer" class="tictacwrapper"></div>
 
 <script src='@routes.Assets.at("javascripts/tictactoe.js")'></script>
 <script src='@routes.Assets.at("javascripts/board.js")'></script>
