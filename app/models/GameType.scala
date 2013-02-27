@@ -9,9 +9,11 @@ object GameType {
   def withName(s: String): GameType = s.toLowerCase match {
     case "chat" => Chat
     case "tictactoe" => Tictactoe
+    case "connectfour" => Tictactoe
     case _ => throw new java.util.NoSuchElementException(s"Game $s not found.")
   }
 }
 trait GameType
 case object Chat extends GameType
 case object Tictactoe extends GameType
+case object Connectfour extends GameType
