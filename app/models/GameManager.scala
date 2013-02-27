@@ -68,21 +68,16 @@ class GameManagerImpl extends GameManager {
 
   override def join(g: GameType, id: String, username: String) =
     games.get((g, id)) map { room =>
-      g match {
-        case Chat => ChatRoom.join(room, username)
-        case Tictactoe => TicTacToeRoom.join(room, username)
+      (room ? Join(username)) map {
+        case Connected(enumerator) => {
+          val iteratee = g match {
+            case Chat => ChatRoom.iteratee(room, username)
+            case Tictactoe => TicTacToeRoom.iteratee(room, username)
+          }
+          (iteratee, enumerator)
+        }
+        case CannotConnect(error) => errorWebSocket(error)
       }
-      // (room ? Join(username)) map {
-      //   case Connected(enumerator) => {
-      //     val iteratee = Iteratee.foreach[JsValue] { event =>
-      //       room ! Talk(username, (event \ "text").as[String])
-      //     }.mapDone { _ =>
-      //       room ! Quit(username)
-      //     }
-      //     (iteratee, enumerator)
-      //   }
-      //   case CannotConnect(error) => errorWebSocket(error)
-      // }
     } getOrElse {
       Future(errorWebSocket(s"Could not find $g/$id"))
     }

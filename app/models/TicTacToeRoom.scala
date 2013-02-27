@@ -19,32 +19,15 @@ import play.api.libs.concurrent.Execution.Implicits._
 object TicTacToeRoom {
   implicit val timeout = Timeout(1.second)
 
-  def join(room: ActorRef, username: String): scala.concurrent.Future[(Iteratee[JsValue,_], Enumerator[JsValue])] = {
-    (room ? Join(username)).map {
-      case Connected(enumerator) =>
-        // Create an Iteratee to consume the feed
-        val iteratee = Iteratee.foreach[JsValue] { event => (event \ "kind").as[String] match {
-          case "talk" => room ! Talk(username, (event \ "text").as[String])
-          case "turn" => 
-            Logger.debug("got" + event)
-            room ! TicTacToeTurn(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
-        }
-          room ! Talk(username, (event \ "text").as[String])
-        }.mapDone { _ =>
-          room ! Quit(username)
-        }
-
-        (iteratee, enumerator)
-
-      case CannotConnect(error) =>
-        // Connection error
-        val iteratee = Done[JsValue, Unit]((), Input.EOF)
-        val enumerator = Enumerator[JsValue](JsObject(Seq("error" -> JsString(error)))).andThen(Enumerator.enumInput(Input.EOF))
-
-        (iteratee, enumerator)
+  def iteratee(room: ActorRef, username: String): Iteratee[JsValue, _] =
+    Iteratee.foreach[JsValue] { event => 
+      (event \ "kind").as[String] match {
+        case "talk" => room ! Talk(username, (event \ "text").as[String])
+        case "turn" => room ! TicTacToeTurn(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
+      }
+    } mapDone { _ =>
+      room ! Quit(username)
     }
-  }
-  
 }
 
 class TicTacToeRoom(val id: String) extends GameRoom {
