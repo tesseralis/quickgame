@@ -16,10 +16,10 @@ $(document).ready ->
         sendTurn i, j
 
   # Draw the board from the specified board state
-  renderBoard = (board) ->
+  renderBoard = (jsonBoard) ->
     for i in [0...3]
       for j in [0...3]
-        $("##{i}#{j}").text(board[i][j])
+        board.selectTile jsonBoard[i][j], i, j
 
   # Socket message callback
   socket.onmessage = (msg) ->
@@ -42,10 +42,10 @@ $(document).ready ->
 
   board.selectTile = (player,row,column) ->
     tile = $("##{row}#{column}")
-    style = ""
-    switch player
-      when 0 then style = "btn-success"
-      when 1 then style = "btn-primary"
+    style = switch player
+      when 0 then "btn-success"
+      when 1 then "btn-primary"
+      else ""
     tile.attr("class", tile.attr("class") + " " + style)
 
   board.reset = () ->

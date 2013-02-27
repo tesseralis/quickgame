@@ -48,7 +48,7 @@ class TicTacToeRoom(val id: String) extends Actor {
     }
     val jsonBoard = JsArray(for (i <- 0 until 3) yield {
       JsArray(for (j <- 0 until 3) yield {
-        JsString(state.board.get((i, j)).map((x: Int) => x.toString).getOrElse(""))
+        JsNumber(BigDecimal(state.board.get((i, j)).getOrElse(-1)))
       })
     })
     val msg = Json.obj(
@@ -56,6 +56,7 @@ class TicTacToeRoom(val id: String) extends Actor {
       "player" -> player,
       "board" -> jsonBoard
     )
+    Logger.debug(msg.toString)
     chatChannel.push(msg)
 
 
