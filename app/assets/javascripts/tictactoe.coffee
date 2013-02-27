@@ -15,7 +15,7 @@ $(document).ready ->
 
   # Send a turn through the socket
   sendTurn = (row, col) ->
-    text = JSON.stringify {kind: 'turn', row, col}
+    text = JSON.stringify {kind: 'move', row, col}
     socket.send text
 
   # Draw the board from the specified board state
@@ -26,6 +26,10 @@ $(document).ready ->
         when 1 then "btn-primary"
         else ""
       tile.addClass(style)
+  # Request the state so we have it initially
+  socket.onopen = (evt) ->
+    socket.send JSON.stringify {kind: 'request'}
+
   # Socket message callback
   socket.onmessage = (msg) ->
     data = $.parseJSON msg.data

@@ -8,6 +8,12 @@ import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 
+case class Join(username: String)
+case class Quit(username: String)
+case class Talk(username: String, text: String)
+case class UpdateRole(username: String, role: Int)
+case class RequestState(username: String)
+
 trait GameRoom[State, Mov] extends Actor {
   case class Move(user: String, move: Mov)
 
@@ -46,8 +52,15 @@ trait GameRoom[State, Mov] extends Actor {
     members(user).push(msg)
   }
 
-  private[this] def iteratee(username: String) = Iteratee.foreach[JsValue] { move =>
-    self ! Move(username, parseMove(move))
+  def iteratee(username: String) = Iteratee.foreach[JsValue] { evt => 
+    (evt\"kind").as[String] match {
+      // Move the player
+      case "move" => self ! Move(username, parseMove(evt))
+      // Update a player role
+      case "update" => self ! UpdateRole(username, (evt\"role").as[Int])
+      // Request the game state
+      case "request" => self ! RequestState(username)
+    }
   } mapDone { _ => self ! Quit(username) }
 
   // a mapping from the members of the room to their message channels.
@@ -67,8 +80,8 @@ trait GameRoom[State, Mov] extends Actor {
         }
         val (enumerator, channel) = Concurrent.broadcast[JsValue]
         members += (username -> channel)
-        notifyAll("join", username)
         sender ! Connected(iteratee(username), enumerator)
+        notifyAll("join", username)
       }
     }
     case Quit(username) => {
@@ -101,6 +114,10 @@ trait GameRoom[State, Mov] extends Actor {
           notifyAll("update", username)
         }
       }
+    }
+    case RequestState(username) => {
+      // TODO send an individual message
+      notifyAll("update", username)
     }
   }
 }
