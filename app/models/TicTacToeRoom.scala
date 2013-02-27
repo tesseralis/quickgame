@@ -17,19 +17,6 @@ import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
 
 object TicTacToeRoom {
-  def iteratee(room: ActorRef, username: String): Iteratee[JsValue, _] =
-    Iteratee.foreach[JsValue] { event => 
-      Logger.debug(event.toString)
-      (event \ "kind").as[String] match {
-        case "talk" => room ! Talk(username, (event \ "text").as[String])
-        case "turn" => {
-          Logger.debug((event\"row").as[Int] + " " + (event\"col").as[Int])
-          room ! Move(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
-        }
-      }
-    } mapDone { _ =>
-      room ! Quit(username)
-    }
 
   type Pos = (Int, Int)
   type Player = Int
@@ -85,6 +72,20 @@ class TicTacToeRoom(val id: String) extends Actor {
   var currentNumPlayers = 0
   val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
 
+  def iteratee(username: String): Iteratee[JsValue, _] =
+    Iteratee.foreach[JsValue] { event => 
+      Logger.debug(event.toString)
+      (event \ "kind").as[String] match {
+        case "talk" => self ! Talk(username, (event \ "text").as[String])
+        case "turn" => {
+          Logger.debug((event\"row").as[Int] + " " + (event\"col").as[Int])
+          self ! Move(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
+        }
+      }
+    } mapDone { _ =>
+      self ! Quit(username)
+    }
+
   def sendState(state: State) {
     val (stateString, player) = state match {
       case Turn(_, p) => ("turn", p)
@@ -116,7 +117,7 @@ class TicTacToeRoom(val id: String) extends Actor {
       } else {
         players += (username -> currentNumPlayers)
         currentNumPlayers += 1
-        sender ! Connected(chatEnumerator)
+        sender ! Connected(iteratee(username), chatEnumerator)
       }
 
     case Quit(username) =>

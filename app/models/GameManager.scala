@@ -73,11 +73,7 @@ class GameManagerImpl extends GameManager {
   override def join(g: GameType, id: String, username: String) =
     games.get((g, id)) map { room =>
       (room ? Join(username)) map {
-        case Connected(enumerator) => {
-          val iteratee = g match {
-            case Chat => ChatRoom.iteratee(room, username)
-            case Tictactoe => TicTacToeRoom.iteratee(room, username)
-          }
+        case Connected(iteratee, enumerator) => {
           (iteratee, enumerator)
         }
         case CannotConnect(error) => errorWebSocket(error)

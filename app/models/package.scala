@@ -7,6 +7,6 @@ package object models {
   case class Quit(username: String)
   case class Talk(username: String, text: String)
 
-  case class Connected(enumerator: Enumerator[JsValue])
+  case class Connected(iteratee: Iteratee[JsValue, _], enumerator: Enumerator[JsValue])
   case class CannotConnect(msg: String)
 }

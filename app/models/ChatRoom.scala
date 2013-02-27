@@ -14,19 +14,18 @@ import akka.pattern.ask
 import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
 
-object ChatRoom {
-  def iteratee(room: ActorRef, username: String): Iteratee[JsValue, _] =
-    Iteratee.foreach[JsValue] { event =>
-      Logger.debug(event.toString)
-      room ! Talk(username, (event \ "text").as[String])
-    } mapDone { _ =>
-      room ! Quit(username)
-    }
-}
 
 class ChatRoom(val id: String) extends Actor {
   var members = Set.empty[String]
   val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
+
+  def iteratee(username: String): Iteratee[JsValue, _] =
+    Iteratee.foreach[JsValue] { event =>
+      Logger.debug(event.toString)
+      self ! Talk(username, (event \ "text").as[String])
+    } mapDone { _ =>
+      self ! Quit(username)
+    }
 
   def receive = {
     case Join(username) => {
@@ -34,7 +33,7 @@ class ChatRoom(val id: String) extends Actor {
         sender ! CannotConnect("This username is already used")
       } else {
         members = members + username
-        sender ! Connected(chatEnumerator)
+        sender ! Connected(iteratee(username), chatEnumerator)
         notifyAll("join", username, "has entered the room")
       }
     }
