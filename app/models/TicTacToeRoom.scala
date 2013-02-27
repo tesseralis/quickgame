@@ -1,27 +1,13 @@
 package models
 
 import scala.util.{Try, Success, Failure}
-
-import akka.actor._
-import scala.concurrent.duration._
-
-import play.api._
-import play.api.libs.json._
-import play.api.libs.iteratee._
-import play.api.libs.concurrent._
-
-import akka.util.Timeout
-import akka.pattern.ask
-
-import play.api.Play.current
-import play.api.libs.concurrent.Execution.Implicits._
+import play.api.libs.json.{Json, JsValue, JsArray, JsNumber}
 
 object TicTacToeRoom {
 
   type Pos = (Int, Int)
   type Player = Int
   type Board = Map[Pos, Player]
-  
   
   def nextPlayer(p: Player): Player = 1 - p
   def outOfBounds(pos: Pos) = {
@@ -61,25 +47,14 @@ object TicTacToeRoom {
   case class Turn(board: Board, currentPlayer: Player) extends State
   case class Win(board: Board, player: Player) extends State
   case class Draw(board: Board) extends State
-
-  case class Move(username: String, move: (Int,Int))
 }
 
 import TicTacToeRoom._
 
-class TicTacToeRoom extends Actor {
-  var gameState: State = Turn(Map.empty, 0)
-  var players = Map.empty[String, Int]
-  val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
-
-  def iteratee(username: String): Iteratee[JsValue, _] = Iteratee.foreach[JsValue] { event => 
-    Logger.debug(event.toString)
-    self ! Move(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
-  } mapDone { _ =>
-    self ! Quit(username)
-  }
-
-  def sendState(state: State) {
+class TicTacToeRoom extends GameRoom[State, Pos] {
+  def maxPlayers = 2
+  def parseMove(js: JsValue) = ((js\"row").as[Int], (js\"col").as[Int])
+  def encodeState(input: State) = {
     val (stateString, player) = state match {
       case Turn(_, p) => ("turn", p)
       case Win(_, p) => ("win", p)
@@ -90,46 +65,12 @@ class TicTacToeRoom extends Actor {
         JsNumber(BigDecimal(state.board.get((i, j)).getOrElse(-1)))
       })
     })
-    val msg = Json.obj(
+    Json.obj(
       "kind" -> stateString,
       "player" -> player,
       "board" -> jsonBoard
     )
-    Logger.debug(msg.toString)
-    chatChannel.push(msg)
   }
-
-  override def receive = {
-    case Join(username) =>
-      if (players contains username) {
-        // Do not let duplicate usernames join.
-        sender ! CannotConnect("This username is already used")
-      } else {
-        // If there's room, add a player.
-        if (players.size < 2) {
-          players += (username -> players.size)
-        }
-        sender ! Connected(iteratee(username), chatEnumerator)
-      }
-
-    case Quit(username) =>
-
-    case Move(username, move) =>
-      Logger.debug(username + " " + move)
-      players.get(username) map { playerNumber =>
-        gameState.move(playerNumber, move) match {
-          case Failure(e) => {
-            Logger.debug(s"Bad move $move made by $username: $e")
-          }
-          case Success(newState) => {
-            Logger.debug(s"Valid move $move made by $username")
-            gameState = newState
-            sendState(gameState)
-          }
-        }
-      } getOrElse {
-        Logger.debug(s"Unknown player $username")
-      }
-  }
+  def move(state: State, idx: Int, mv: Pos) = state.move(idx, mv)
+  def initState = Turn(Map.empty, 0)
 }
-
