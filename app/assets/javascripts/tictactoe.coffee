@@ -1,6 +1,20 @@
 $(document).ready ->
+  newBoard = new Board 3,3, (i, j) ->
+    sendTurn i, j
+
+  newBoard.eachTile (tile) ->
+    tile.addClass("btn")
+    tile.css({
+      "border-style":"solid",
+      "border-width":"1px",
+      "border-color":"#FFFFFF"
+    })
+  
+  $('#ttcontainer').append(newBoard.toHTML())
+
   board = $("#board")
   $(window).resize ->
+    reset()
     board.reset()
   socket = new WebSocket(wsURL)
 
@@ -9,11 +23,6 @@ $(document).ready ->
     text = JSON.stringify {kind: 'turn', row, col}
     socket.send text
 
-  for i in [0...3]
-    for j in [0...3]
-      do (i, j) -> $("##{i}#{j}").click ->
-        console.log i, j
-        sendTurn i, j
 
   # Draw the board from the specified board state
   renderBoard = (board) ->
@@ -47,19 +56,24 @@ $(document).ready ->
     tile.attr("class", tile.attr("class") + " " + style)
 
   board.reset = () ->
-    maxWidth = $('#ttcontainer').width()
+    maxWidth = $('.container').width()
     maxHeight = $(window).height() - ($('.navbar').height() + 5)
     height = Math.min(maxHeight, maxWidth)
     board.resize height
     board.center()
 
-  $('.collapse').click ->
-    board.reset()
+  board.center = () ->
+    this.css("position","absolute");
+    this.css("top", ( $(window).height() - this.height() + ($('.navbar').height() + 5) ) / 2+$(window).scrollTop() + "px");
+    this.css("left", ( $(window).width() - this.width() ) / 2+$(window).scrollLeft() + "px");
+    return this;
 
+  reset = () ->
+    top = $('#ttcontainer').position().top
+    height = $(window).height() - (top + 10)
+    $('#ttcontainer').height(height)
+    newBoard.reset()
+  
   board.reset()
+  reset()
 
-jQuery.fn.center = () ->
-  this.css("position","absolute");
-  this.css("top", ( $(window).height() - this.height() + ($('.navbar').height() + 5) ) / 2+$(window).scrollTop() + "px");
-  this.css("left", ( $(window).width() - this.width() ) / 2+$(window).scrollLeft() + "px");
-  return this;
