@@ -6,6 +6,12 @@ import play.api.Logger
 
 class GameRoom extends Actor {
   override def receive = {
-    case msg => Logger.debug(s"Received $msg")
+    case JoinRoom(uid) =>
+    case QuitRoom(uid) =>
+    case ChooseRole(uid, role) =>
   }
 }
+
+case class JoinRoom(uid: String)
+case class QuitRoom(uid: String)
+case class ChooseRole(uid: String, role: Int)
