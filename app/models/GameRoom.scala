@@ -23,6 +23,7 @@ trait GameRoom[State, Mov] extends Actor {
 
   def initState: State
 
+  // TODO Bring together JSON data format.
   private[this] def notifyAll(kind: String, user: String) {
     val msg = Json.obj(
       "kind" -> kind,
@@ -35,6 +36,14 @@ trait GameRoom[State, Mov] extends Actor {
     for (channel <- members.values) {
       channel.push(msg)
     }
+  }
+
+  def notify(user: String, kind: String, data: String) {
+    val msg = Json.obj(
+      "kind" -> kind,
+      "data" -> data
+    )
+    members(user).push(msg)
   }
 
   private[this] def iteratee(username: String) = Iteratee.foreach[JsValue] { move =>
@@ -75,6 +84,7 @@ trait GameRoom[State, Mov] extends Actor {
             notifyAll("move", username)
           }
           case Failure(e) =>
+            notify(username, "error", s"You've made a bad move: $e")
         }
       }
     }
