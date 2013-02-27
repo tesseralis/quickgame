@@ -24,12 +24,14 @@ $(document).ready ->
   # Socket message callback
   socket.onmessage = (msg) ->
     data = $.parseJSON msg.data
+    renderBoard data.board
     switch data.kind
-      when 'state'
+      when 'turn'
         $('#message').text "It is #{data.player}'s turn"
-        renderBoard data.board
-      when 'status'
-        $('#message').text data.text
+      when 'win'
+        $('#message').text "#{data.player} is the winner!"
+      when 'draw'
+        $('#message').text "It's a draw!"
 
   board.resize = (newSize) ->
     board.width newSize
@@ -59,7 +61,7 @@ $(document).ready ->
   board.reset()
 
 jQuery.fn.center = () ->
-  this.css("position","absolute");
-  this.css("top", ( $(window).height() - this.height() + ($('.navbar').height() + 5) ) / 2+$(window).scrollTop() + "px");
-  this.css("left", ( $(window).width() - this.width() ) / 2+$(window).scrollLeft() + "px");
-  return this;
+  this.css("position","absolute")
+  this.css("top", ( $(window).height() - this.height() + ($('.navbar').height() + 5) ) / 2+$(window).scrollTop() + "px")
+  this.css("left", ( $(window).width() - this.width() ) / 2+$(window).scrollLeft() + "px")
+  return this
