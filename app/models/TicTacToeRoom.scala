@@ -30,11 +30,12 @@ object TicTacToeRoom {
   }
 
   def winningMove(board: Board, move: Pos, player: Player): Boolean = {
+    val defaultBoard = board withDefaultValue -1
     val (row, col) = move
-    (0 until 3).forall(board(_, col) == player) ||
-      (0 until 3).forall(board(row, _) == player) ||
-      (0 until 3).forall(k => board(k, k) == player) ||
-      (0 until 3).forall(k => board(k, 2-k) == player)
+    (0 until 3).forall(defaultBoard(_, col) == player) ||
+      (0 until 3).forall(defaultBoard(row, _) == player) ||
+      (0 until 3).forall(k => defaultBoard(k, k) == player) ||
+      (0 until 3).forall(k => defaultBoard(k, 2-k) == player)
   }
 
   trait State {
@@ -66,25 +67,17 @@ object TicTacToeRoom {
 
 import TicTacToeRoom._
 
-class TicTacToeRoom(val id: String) extends Actor {
-  var gameState: State = Turn(Map.empty withDefaultValue -1, 0)
-  var players = Map[String,Int]()
-  var currentNumPlayers = 0
+class TicTacToeRoom extends Actor {
+  var gameState: State = Turn(Map.empty, 0)
+  var players = Map.empty[String, Int]
   val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
 
-  def iteratee(username: String): Iteratee[JsValue, _] =
-    Iteratee.foreach[JsValue] { event => 
-      Logger.debug(event.toString)
-      (event \ "kind").as[String] match {
-        case "talk" => self ! Talk(username, (event \ "text").as[String])
-        case "turn" => {
-          Logger.debug((event\"row").as[Int] + " " + (event\"col").as[Int])
-          self ! Move(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
-        }
-      }
-    } mapDone { _ =>
-      self ! Quit(username)
-    }
+  def iteratee(username: String): Iteratee[JsValue, _] = Iteratee.foreach[JsValue] { event => 
+    Logger.debug(event.toString)
+    self ! Move(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
+  } mapDone { _ =>
+    self ! Quit(username)
+  }
 
   def sendState(state: State) {
     val (stateString, player) = state match {
@@ -104,26 +97,22 @@ class TicTacToeRoom(val id: String) extends Actor {
     )
     Logger.debug(msg.toString)
     chatChannel.push(msg)
-
-
   }
 
   override def receive = {
     case Join(username) =>
       if (players contains username) {
+        // Do not let duplicate usernames join.
         sender ! CannotConnect("This username is already used")
-      } else if (currentNumPlayers >= 2) {
-        sender ! CannotConnect("Too many players!")
       } else {
-        players += (username -> currentNumPlayers)
-        currentNumPlayers += 1
+        // If there's room, add a player.
+        if (players.size < 2) {
+          players += (username -> players.size)
+        }
         sender ! Connected(iteratee(username), chatEnumerator)
       }
 
     case Quit(username) =>
-      if (players contains username) {
-       players -= username 
-      }
 
     case Move(username, move) =>
       Logger.debug(username + " " + move)
