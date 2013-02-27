@@ -17,8 +17,6 @@ import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
 
 object TicTacToeRoom {
-  implicit val timeout = Timeout(1.second)
-
   def iteratee(room: ActorRef, username: String): Iteratee[JsValue, _] =
     Iteratee.foreach[JsValue] { event => 
       Logger.debug(event.toString)
