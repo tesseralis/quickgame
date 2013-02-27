@@ -24,12 +24,12 @@ $(document).ready ->
   # Socket message callback
   socket.onmessage = (msg) ->
     data = $.parseJSON msg.data
-    renderBoard data.board
+    renderBoard data.state.board
     switch data.kind
       when 'turn'
-        $('#message').text "It is #{data.player}'s turn"
+        $('#message').text "It is #{data.state.player}'s turn"
       when 'win'
-        $('#message').text "#{data.player} is the winner!"
+        $('#message').text "#{data.state.player} is the winner!"
       when 'draw'
         $('#message').text "It's a draw!"
 
