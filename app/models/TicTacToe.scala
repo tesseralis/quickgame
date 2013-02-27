@@ -23,29 +23,28 @@ import TicTacToeModel._
 
 trait TicTacToeModel {
   def board: Board
-  def move(pos: Pos): Try[TicTacToeModel]
-}
-
-case class Turn(board: Board, currentPlayer: Player) extends TicTacToeModel {
-  def move(pos: Pos): Try[TicTacToeModel] = Try {
-    assert(board.contains(pos) || outOfBounds(pos), "Please make a valid move.")
-    val newBoard = board updated (pos, currentPlayer)
-    val (i, j) = pos
-    // TODO Diagonals
-    if ((0 until 3).forall(newBoard(_, j) == currentPlayer) ||
-        (0 until 3).forall(newBoard(i, _) == currentPlayer)) {
-      Win(newBoard, currentPlayer)
-    } else if (newBoard.size == 3 * 3) {
-      Draw(newBoard)
-    }else {
-      copy(board = newBoard, currentPlayer = nextPlayer(currentPlayer))
+  def move(player: Player, pos: Pos): Try[TicTacToeModel] = this match {
+    case turn @ Turn(board, currentPlayer) => Try {
+      require(player == currentPlayer, "Wrong player.")
+      require(!board.contains(pos), "Invalid board position.")
+      require(!outOfBounds(pos), "Position out of bounds.")
+      val newBoard = board updated (pos, currentPlayer)
+      val (i, j) = pos
+      // TODO Diagonals
+      //if ((0 until 3).forall(newBoard(_, j) == currentPlayer) ||
+      //    (0 until 3).forall(newBoard(i, _) == currentPlayer)) {
+      if (newBoard.get((1, 1)).map(_ == currentPlayer).getOrElse(false)) {
+        Win(newBoard, currentPlayer)
+      } else if (newBoard.size == 3 * 3) {
+        Draw(newBoard)
+      } else {
+        turn.copy(board = newBoard, currentPlayer = nextPlayer(currentPlayer))
+      }
     }
+    case _ => Failure(new Exception("The game is completed."))
   }
 }
 
-case class Win(board: Board, player: Player) extends TicTacToeModel {
-  override def move(pos: Pos) = Failure(new Exception("The game is over"))
-}
-case class Draw(board: Board) extends TicTacToeModel {
-  override def move(pos: Pos) = Failure(new Exception("The game is over"))
-}
+case class Turn(board: Board, currentPlayer: Player) extends TicTacToeModel
+case class Win(board: Board, player: Player) extends TicTacToeModel
+case class Draw(board: Board) extends TicTacToeModel
