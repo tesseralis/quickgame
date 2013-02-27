@@ -7,17 +7,17 @@ append = (message, icon = "") ->
 	newline.prepend(iconDiv)
 	chattext.append(newline)
 	chattext.scrollTop(chattext.height())
-	$('html, body').scrollTop($(document).height()-$(window).height());
+	$('html, body').scrollTop($(document).height()-$(window).height())
 
 messageType = {}
 messageType["join"] = (joinMap) ->
-	append(joinMap.user + " " +joinMap.message, "icon-user")
+	append("#{joinMap.user} has joined the room.", "icon-user")
 messageType["quit"] = (joinMap) ->
-	append(joinMap.user + " " +joinMap.message, "icon-remove")
+	append("#{joinMap.user} has left the room.", "icon-remove")
 messageType["talk"] = (talkMap) ->
-	append talkMap.user + " : " +talkMap.message
+	append talkMap.user + " : " +talkMap.state
 messageType['default'] = (defaultMap) ->
-	append defaultMap.user + " " +defaultMap.message
+	append defaultMap.user + " " +defaultMap.state
 
 receiveMessage = (json) ->
 	jsonObject = $.parseJSON(json)
