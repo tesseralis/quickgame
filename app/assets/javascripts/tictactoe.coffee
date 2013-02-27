@@ -1,8 +1,7 @@
 $(document).ready ->
   board = $("#board")
   $(window).resize ->
-    # board.resize($("#ttcontainer").width())
-    board.center()
+    board.reset()
   socket = new WebSocket(wsURL)
 
   # Send a turn through the socket
@@ -44,15 +43,22 @@ $(document).ready ->
     style = ""
     switch player
       when 0 then style = "btn-success"
-      when 1 then style = "btn-danger"
+      when 1 then style = "btn-primary"
     tile.attr("class", tile.attr("class") + " " + style)
 
+  board.reset = () ->
+    maxWidth = $('#ttcontainer').width()
+    maxHeight = $(window).height() - ($('.navbar').height() + 5)
+    console.log "Max width = " + maxWidth
+    console.log "Max height = " + maxHeight
+    height = Math.min(maxHeight, maxWidth)
+    board.resize height
+    board.center()
 
-  board.resize(Math.min($('body').height(),$('body').width()))
-  board.center()
+  board.reset()
 
 jQuery.fn.center = () ->
-    this.css("position","absolute");
-    this.css("top", ( $(window).height() - this.height() ) / 2+$(window).scrollTop() + "px");
-    this.css("left", ( $(window).width() - this.width() ) / 2+$(window).scrollLeft() + "px");
-    return this;
+  this.css("position","absolute");
+  this.css("top", ( $(window).height() - this.height() + ($('.navbar').height() + 5) ) / 2+$(window).scrollTop() + "px");
+  this.css("left", ( $(window).width() - this.width() ) / 2+$(window).scrollLeft() + "px");
+  return this;
