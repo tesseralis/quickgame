@@ -30,15 +30,62 @@ object TicTacToeRoom {
     } mapDone { _ =>
       room ! Quit(username)
     }
+
+  type Pos = (Int, Int)
+  type Player = Int
+  type Board = Map[Pos, Player]
+  
+  
+  def nextPlayer(p: Player): Player = 1 - p
+  def outOfBounds(pos: Pos) = {
+    val (i, j) = pos
+    i < 0 || i >= 3 || j < 0 || j >= 3
+  }
+
+  def winningMove(board: Board, move: Pos, player: Player): Boolean = {
+    val (row, col) = move
+    (0 until 3).forall(board(_, col) == player) ||
+      (0 until 3).forall(board(row, _) == player) ||
+      (0 until 3).forall(k => board(k, k) == player) ||
+      (0 until 3).forall(k => board(k, 2-k) == player)
+  }
+
+  trait TicTacToeState {
+    def board: Board
+    def move(player: Player, pos: Pos): Try[TicTacToeState] = this match {
+      case turn @ Turn(board, currentPlayer) => Try {
+        require(player == currentPlayer, "Wrong player.")
+        require(!board.contains(pos), "Invalid board position.")
+        require(!outOfBounds(pos), "Position out of bounds.")
+        val newBoard = board updated (pos, currentPlayer)
+        if (winningMove(newBoard, pos, currentPlayer)) {
+          Win(newBoard, currentPlayer)
+        } else if (newBoard.size == 3 * 3) {
+          Draw(newBoard)
+        } else {
+          turn.copy(board = newBoard, currentPlayer = nextPlayer(currentPlayer))
+        }
+      }
+      case _ => Failure(new Exception("The game is completed."))
+    }
+  }
+
+  case class Turn(board: Board, currentPlayer: Player) extends TicTacToeState
+  case class Win(board: Board, player: Player) extends TicTacToeState
+  case class Draw(board: Board) extends TicTacToeState
+
+  case class TicTacToeTurn(username: String, move: (Int,Int))
 }
 
+import TicTacToeRoom._
+
 class TicTacToeRoom(val id: String) extends Actor {
-  var gameState = TicTacToeModel.empty
+  var gameState: TicTacToeState = Turn(Map.empty withDefaultValue -1, 0)
   var players = Map[String,Int]()
   var currentNumPlayers = 0
   val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
 
-  def sendState(state: TicTacToeModel) {
+  def sendState(state: TicTacToeState) {
     val (stateString, player) = state match {
       case Turn(_, p) => ("turn", p)
       case Win(_, p) => ("win", p)
@@ -96,4 +143,3 @@ class TicTacToeRoom(val id: String) extends Actor {
   }
 }
 
-case class TicTacToeTurn(username: String, move: (Int,Int))
