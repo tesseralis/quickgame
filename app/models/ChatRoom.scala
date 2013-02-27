@@ -19,6 +19,7 @@ object ChatRoom {
 
   def iteratee(room: ActorRef, username: String): Iteratee[JsValue, _] =
     Iteratee.foreach[JsValue] { event =>
+      Logger.debug(event.toString)
       room ! Talk(username, (event \ "text").as[String])
     } mapDone { _ =>
       room ! Quit(username)

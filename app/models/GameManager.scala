@@ -60,7 +60,11 @@ class GameManagerImpl extends GameManager {
 
   override def create(g: GameType) = Future {
     val id = generateId(id => !games.contains((g, id)))
-    games += ((g, id) -> ctx.actorOf(Props(new ChatRoom(id))))
+    val room = g match {
+      case Chat => ctx.actorOf(Props(new ChatRoom(id)))
+      case Tictactoe => ctx.actorOf(Props(new TicTacToeRoom(id)))
+    }
+    games += ((g, id) -> room)
     id
   }
 
