@@ -15,7 +15,7 @@ import play.api.Play.current
 import play.api.libs.concurrent.Execution.Implicits._
 
 
-class ChatRoom(val id: String) extends Actor {
+class ChatRoom extends Actor {
   var members = Set.empty[String]
   val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
 

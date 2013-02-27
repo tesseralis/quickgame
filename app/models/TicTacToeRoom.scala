@@ -66,7 +66,7 @@ object TicTacToeRoom {
 
 import TicTacToeRoom._
 
-class TicTacToeRoom(val id: String) extends Actor {
+class TicTacToeRoom extends Actor {
   var gameState: State = Turn(Map.empty withDefaultValue -1, 0)
   var players = Map[String,Int]()
   var currentNumPlayers = 0
