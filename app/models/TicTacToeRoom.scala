@@ -72,19 +72,12 @@ class TicTacToeRoom extends Actor {
   var currentNumPlayers = 0
   val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
 
-  def iteratee(username: String): Iteratee[JsValue, _] =
-    Iteratee.foreach[JsValue] { event => 
-      Logger.debug(event.toString)
-      (event \ "kind").as[String] match {
-        case "talk" => self ! Talk(username, (event \ "text").as[String])
-        case "turn" => {
-          Logger.debug((event\"row").as[Int] + " " + (event\"col").as[Int])
-          self ! Move(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
-        }
-      }
-    } mapDone { _ =>
-      self ! Quit(username)
-    }
+  def iteratee(username: String): Iteratee[JsValue, _] = Iteratee.foreach[JsValue] { event => 
+    Logger.debug(event.toString)
+    self ! Move(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
+  } mapDone { _ =>
+    self ! Quit(username)
+  }
 
   def sendState(state: State) {
     val (stateString, player) = state match {
