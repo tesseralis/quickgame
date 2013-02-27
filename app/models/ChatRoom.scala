@@ -26,6 +26,47 @@ object ChatRoom {
     }
 }
 
-class ChatRoom(val id: String) extends GameRoom {
+class ChatRoom(val id: String) extends Actor {
+  var members = Set.empty[String]
+  val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
 
+  def receive = {
+    case Join(username) => {
+      if(members.contains(username)) {
+        sender ! CannotConnect("This username is already used")
+      } else {
+        members = members + username
+        sender ! Connected(chatEnumerator)
+        self ! NotifyJoin(username)
+      }
+    }
+
+    case NotifyJoin(username) => {
+      notifyAll("join", username, "has entered the room")
+    }
+
+    case Talk(username, text) => {
+      notifyAll("talk", username, text)
+    }
+
+    case Quit(username) => {
+      members = members - username
+      notifyAll("quit", username, "has left the room")
+      // TODO: destroy gameroom when all users have left.
+    }
+  }
+
+  def notifyAll(kind: String, user: String, text: String) {
+    val msg = JsObject(
+      Seq(
+        "kind" -> JsString(kind),
+        "user" -> JsString(user),
+        "message" -> JsString(text),
+        "members" -> JsArray(
+          members.toList.map(JsString)
+        )
+      )
+    )
+    chatChannel.push(msg)
+  }
 }
