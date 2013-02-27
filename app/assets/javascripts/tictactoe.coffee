@@ -49,11 +49,12 @@ $(document).ready ->
   board.reset = () ->
     maxWidth = $('#ttcontainer').width()
     maxHeight = $(window).height() - ($('.navbar').height() + 5)
-    console.log "Max width = " + maxWidth
-    console.log "Max height = " + maxHeight
     height = Math.min(maxHeight, maxWidth)
     board.resize height
     board.center()
+
+  $('.collapse').click ->
+    board.reset()
 
   board.reset()
 

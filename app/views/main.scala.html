@@ -16,25 +16,17 @@
     <div class="navbar navbar-inverse">
         <div class="navbar-inner">
             <div class="container">
-                <button type="button" class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                    <span class="icon-bar"></span>
-                </button>
-                <a class="brand" href="/">quickga.me</a>
-                <div class="nav-collapse collapse">
-                    <ul class="nav">
-                        <li><a href="/"><i class="icon-home icon-white"></i>Home</a></li>
-                        <li><a href="/about">About</a></li>
-                        <li><a href="/contact">Contact</a></li>
-                        <li class="dropdown">
-                            <a href="#" class="dropdown-toggle" data-toggle="dropdown">New <b class="caret"></b></a>
-                            <ul class="dropdown-menu">
-                                <li><a href="/chat/new">Chat</a></li>
-                            </ul>
-                        </li>
-                    </ul>
-                </div><!--/.nav-collapse -->
+                <a class="brand" href="@routes.Application.index()">quickga.me</a>
+                <ul class="nav">
+                    <li><a href="@routes.Application.index()">Home</a></li>
+                    <li class="dropdown">
+                        <a href="#" class="dropdown-toggle" data-toggle="dropdown">New<b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li><a href="@routes.Application.newGame(Tictactoe)">TicTacToe</a></li>
+                            <li><a href="@routes.Application.newGame(Chat)">Chat</a></li>
+                        </ul>
+                    </li>
+                </ul>
             </div>
         </div>
     </div>
