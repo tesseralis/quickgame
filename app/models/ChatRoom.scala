@@ -35,12 +35,8 @@ class ChatRoom(val id: String) extends Actor {
       } else {
         members = members + username
         sender ! Connected(chatEnumerator)
-        self ! NotifyJoin(username)
+        notifyAll("join", username, "has entered the room")
       }
-    }
-
-    case NotifyJoin(username) => {
-      notifyAll("join", username, "has entered the room")
     }
 
     case Talk(username, text) => {
