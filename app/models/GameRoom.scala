@@ -28,24 +28,25 @@ trait GameRoom[State, Mov] extends Actor {
       "kind" -> kind,
       "user" -> user,
       "state" -> encodeState(state),
-      "members" -> Json.arr(members)
+      "members" -> Json.arr(members.keys)
       // TODO List players
     )
-    channel.push(msg)
+    // TODO: Can we make this asynchronous?
+    for (channel <- members.values) {
+      channel.push(msg)
+    }
   }
 
   private[this] def iteratee(username: String) = Iteratee.foreach[JsValue] { move =>
     self ! Move(username, parseMove(move))
   } mapDone { _ => self ! Quit(username) }
 
-  // The current members of this room
-  var members = Set[String]()
+  // a mapping from the members of the room to their message channels.
+  var members = Map[String, Concurrent.Channel[JsValue]]()
   // A map of players to their position in the game
   var players = Map[String, Int]()
 
   var state = initState
-  // TODO: Have one for each player and store in members as a map
-  val (enumerator, channel) = Concurrent.broadcast[JsValue]
 
   override def receive = {
     case Join(username) => {
@@ -55,7 +56,8 @@ trait GameRoom[State, Mov] extends Actor {
         if (players.size < maxPlayers) {
           players += (username -> (0 until maxPlayers).indexWhere(!players.values.toSet.contains(_)))
         }
-        members += username
+        val (enumerator, channel) = Concurrent.broadcast[JsValue]
+        members += (username -> channel)
         notifyAll("join", username)
         sender ! Connected(iteratee(username), enumerator)
       }
