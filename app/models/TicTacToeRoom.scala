@@ -24,7 +24,7 @@ object TicTacToeRoom {
         case "talk" => room ! Talk(username, (event \ "text").as[String])
         case "turn" => {
           Logger.debug((event\"row").as[Int] + " " + (event\"col").as[Int])
-          room ! TicTacToeTurn(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
+          room ! Move(username, ((event \ "row").as[Int], (event \ "col").as[Int]))
         }
       }
     } mapDone { _ =>
@@ -50,9 +50,9 @@ object TicTacToeRoom {
       (0 until 3).forall(k => board(k, 2-k) == player)
   }
 
-  trait TicTacToeState {
+  trait State {
     def board: Board
-    def move(player: Player, pos: Pos): Try[TicTacToeState] = this match {
+    def move(player: Player, pos: Pos): Try[State] = this match {
       case turn @ Turn(board, currentPlayer) => Try {
         require(player == currentPlayer, "Wrong player.")
         require(!board.contains(pos), "Invalid board position.")
@@ -70,22 +70,22 @@ object TicTacToeRoom {
     }
   }
 
-  case class Turn(board: Board, currentPlayer: Player) extends TicTacToeState
-  case class Win(board: Board, player: Player) extends TicTacToeState
-  case class Draw(board: Board) extends TicTacToeState
+  case class Turn(board: Board, currentPlayer: Player) extends State
+  case class Win(board: Board, player: Player) extends State
+  case class Draw(board: Board) extends State
 
-  case class TicTacToeTurn(username: String, move: (Int,Int))
+  case class Move(username: String, move: (Int,Int))
 }
 
 import TicTacToeRoom._
 
 class TicTacToeRoom(val id: String) extends Actor {
-  var gameState: TicTacToeState = Turn(Map.empty withDefaultValue -1, 0)
+  var gameState: State = Turn(Map.empty withDefaultValue -1, 0)
   var players = Map[String,Int]()
   var currentNumPlayers = 0
   val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
 
-  def sendState(state: TicTacToeState) {
+  def sendState(state: State) {
     val (stateString, player) = state match {
       case Turn(_, p) => ("turn", p)
       case Win(_, p) => ("win", p)
@@ -124,7 +124,7 @@ class TicTacToeRoom(val id: String) extends Actor {
        players -= username 
       }
 
-    case TicTacToeTurn(username, move) =>
+    case Move(username, move) =>
       Logger.debug(username + " " + move)
       players.get(username) map { playerNumber =>
         gameState.move(playerNumber, move) match {
