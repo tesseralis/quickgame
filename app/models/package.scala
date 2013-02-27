@@ -6,7 +6,6 @@ package object models {
   case class Join(username: String)
   case class Quit(username: String)
   case class Talk(username: String, text: String)
-  case class GameMove[A](username: String, move: A)
 
   case class Connected(iteratee: Iteratee[JsValue, _], enumerator: Enumerator[JsValue])
   case class CannotConnect(msg: String)
