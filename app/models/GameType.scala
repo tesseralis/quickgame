@@ -5,15 +5,15 @@ package models
  */
 
 object GameType {
-  def values: Set[GameType] = Set(Chat, Tictactoe)
+  def values: Set[GameType] = Set(Chat, Tictactoe, Connectfour)
   def withName(s: String): GameType = s.toLowerCase match {
     case "chat" => Chat
     case "tictactoe" => Tictactoe
-    case "connectfour" => Tictactoe
+    case "connectfour" => Connectfour
     case _ => throw new java.util.NoSuchElementException(s"Game $s not found.")
   }
 }
-trait GameType
+sealed trait GameType
 case object Chat extends GameType
 case object Tictactoe extends GameType
 case object Connectfour extends GameType

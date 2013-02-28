@@ -20,11 +20,6 @@ object Application extends Controller {
   val gameManager: GameManager = TypedActor(Akka.system).typedActorOf(
     TypedProps[GameManagerImpl]()
   )
-    
-  var games: Map[GameType, Map[String, ActorRef]] = Map(
-    Chat -> Map.empty,
-    Tictactoe -> Map.empty
-  )
   
   def index = Action {
     Ok(views.html.index("Your new application is ready."))
@@ -50,6 +45,7 @@ object Application extends Controller {
           g match {
             case Tictactoe => Ok(views.html.tictactoe(id, username1))
             case Chat => Ok(views.html.chat(id, username1))
+            case Connectfour => Ok(views.html.connectfour(id, username1))
           }
         } else {
           NotFound(s"Could not find $g game #$id")

@@ -63,6 +63,7 @@ class GameManagerImpl extends GameManager {
     val room = g match {
       case Chat => ctx.actorOf(Props[ChatRoom])
       case Tictactoe => ctx.actorOf(Props[TicTacToeRoom])
+      case Connectfour => ctx.actorOf(Props[ConnectFourRoom])
     }
     games += ((g, id) -> room)
     id
