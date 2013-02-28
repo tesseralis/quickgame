@@ -5,23 +5,32 @@ import scala.util.{Try, Success, Failure}
 import akka.actor.Actor
 
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsValue, Json, JsUndefined, JsString}
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 
+// Classes to handle the room state
 case class Join(username: String)
 case class Quit(username: String)
-case class Talk(username: String, text: String)
-case class UpdateRole(username: String, role: Int)
-case class RequestState(username: String)
 
+/**
+ * The GameRoom actor handles the logic for a single game room.
+ * It adds and removes players, creates websockets, starts and stops the game, etc.
+ */
 trait GameRoom[State, Mov] extends Actor {
-  case class Move(user: String, move: Mov)
+  /* 
+   * Internal messages sent from the room's iteratee to itself.
+   * Each represents a possible message sent from the client.
+   */
+  sealed trait ServerMessage
+  case class ChangeRole(username: String, role: Int) extends ServerMessage
+  case class RequestUpdate(username: String, data: Set[String]) extends ServerMessage
+  case class Move(user: String, move: Mov) extends ServerMessage
 
   // The number of players needed to play the game
   def maxPlayers: Int
 
   // How to parse a JSON move
-  def parseMove(input: JsValue): Mov
+  def parseMove(input: JsValue): Option[Mov]
 
   def encodeState(input: State): JsValue
 
@@ -29,37 +38,38 @@ trait GameRoom[State, Mov] extends Actor {
 
   def initState: State
 
-  // TODO Bring together JSON data format.
-  private[this] def notifyAll(kind: String, user: String) {
-    val msg = Json.obj(
-      "kind" -> kind,
-      "user" -> user,
-      "state" -> encodeState(state),
-      "members" -> Json.arr(members.keys)
-      // TODO List players
-    )
-    // TODO: Can we make this asynchronous?
+  def jsData(kind: String): JsValue = {
+    val data: JsValue = kind match {
+      case "members" => Json.arr(members.keys)
+      case "players" => Json.arr((0 until maxPlayers).map { i =>
+        playersByIndex.get(i).map(JsString).getOrElse(JsUndefined("no player"))
+      })
+      case "gamestate" => encodeState(state)
+      case _ => JsUndefined("type not found")
+    }
+    Json.obj("kind" -> kind, "data" -> data)
+  }
+
+  def jsMessage(msg: String): JsValue = {
+    Json.obj("kind" -> "message", "data" -> msg)
+  }
+
+  def sendAll(msg: JsValue) {
     for (channel <- members.values) {
       channel.push(msg)
     }
   }
 
-  def notify(user: String, kind: String, data: String) {
-    val msg = Json.obj(
-      "kind" -> kind,
-      "data" -> data
-    )
-    members(user).push(msg)
+  def serverMessage(id: String, kind: String, data: JsValue): Option[ServerMessage] = kind match {
+    case "update" => data.asOpt[Set[String]] map { RequestUpdate(id, _) }
+    case "changerole" => data.asOpt[Int] map { ChangeRole(id, _) }
+    case "move" => parseMove(data) map { Move(id, _) }
+    case _ => None
   }
 
-  def iteratee(username: String) = Iteratee.foreach[JsValue] { evt => 
-    (evt\"kind").as[String] match {
-      // Move the player
-      case "move" => self ! Move(username, parseMove(evt))
-      // Update a player role
-      case "update" => self ! UpdateRole(username, (evt\"role").as[Int])
-      // Request the game state
-      case "request" => self ! RequestState(username)
+  def iteratee(username: String) = Iteratee.foreach[JsValue] { event => 
+    for (kind <- event.asOpt[String]; msg <- serverMessage(username, kind, event\"data")) {
+      self ! msg
     }
   } mapDone { _ => self ! Quit(username) }
 
@@ -68,6 +78,8 @@ trait GameRoom[State, Mov] extends Actor {
   // A map of players to their position in the game
   var players = Map[String, Int]()
 
+  def playersByIndex: Map[Int, String] = players map { _.swap }
+
   var state = initState
 
   override def receive = {
@@ -75,49 +87,54 @@ trait GameRoom[State, Mov] extends Actor {
       if (members contains username) {
         sender ! CannotConnect("This username is already in use.")
       } else {
-        if (players.size < maxPlayers) {
-          players += (username -> (0 until maxPlayers).indexWhere(!players.values.toSet.contains(_)))
-        }
         val (enumerator, channel) = Concurrent.broadcast[JsValue]
         members += (username -> channel)
+        sendAll(jsData("members"))
         sender ! Connected(iteratee(username), enumerator)
-        notifyAll("join", username)
+
+        // Make this member a player if there are spots available
+        if (players.size < maxPlayers) {
+          players += (username -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
+          sendAll(jsData("players"))
+        }
       }
     }
     case Quit(username) => {
       members -= username
       players -= username
-      notifyAll("quit", username)
+      sendAll(jsData("members"))
+      sendAll(jsData("players"))
     }
     case Move(username, mv) => {
       for (idx <- players.get(username)) {
         move(state, idx, mv) match {
           case Success(newState) => {
             state = newState
-            notifyAll("move", username)
+            sendAll(jsData("state"))
           }
           case Failure(e) =>
-            notify(username, "error", s"You've made a bad move: $e")
+            members(username).push(jsMessage(s"You've made a bad move: $e"))
         }
       }
     }
-    case UpdateRole(username, role) => {
+    case ChangeRole(username, role) => {
       members.get(username) map { channel =>
         // Remove player if invalid number is given
         if (role <= 0 || role > maxPlayers) {
           players -= username
-          notifyAll("update", username)
-        } else if (players.values.toSet.contains(role)) {
-          notify(username, "error", "That role is already taken.")
+          sendAll(jsData("players"))
+        } else if (playersByIndex.contains(role)) {
+          members(username).push(jsMessage(s"That role is unavailable."))
         } else {
           players += (username -> role)
-          notifyAll("update", username)
+          sendAll(jsData("players"))
         }
       }
     }
-    case RequestState(username) => {
-      // TODO send an individual message
-      notifyAll("update", username)
+    case RequestUpdate(username, data) => {
+      for (kind <- data) {
+        members(username).push(jsData(kind))
+      }
     }
   }
 }

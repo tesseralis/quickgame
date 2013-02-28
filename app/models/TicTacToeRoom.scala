@@ -53,7 +53,10 @@ import TicTacToeRoom._
 
 class TicTacToeRoom extends GameRoom[State, Pos] {
   def maxPlayers = 2
-  def parseMove(js: JsValue) = ((js\"row").as[Int], (js\"col").as[Int])
+  def parseMove(data: JsValue) = for {
+    row <- (data\"row").asOpt[Int]
+    col <- (data\"col").asOpt[Int]
+  } yield (row, col)
   def encodeState(input: State) = {
     val (stateString, player) = state match {
       case Turn(_, p) => ("turn", p)
