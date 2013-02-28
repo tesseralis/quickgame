@@ -3,7 +3,6 @@ package models
 import scala.util.{Try, Success, Failure}
 import akka.actor.Actor
 
-import play.api.Logger
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.json.{Json, JsValue}
 

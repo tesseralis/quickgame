@@ -4,7 +4,6 @@ import scala.util.{Try, Success, Failure}
 
 import akka.actor.Actor
 
-import play.api.Logger
 import play.api.libs.json.{JsValue, Json, JsUndefined, JsString}
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 
@@ -68,9 +67,7 @@ trait GameRoom[State, Mov] extends Actor {
   }
 
   def iteratee(username: String) = Iteratee.foreach[JsValue] { event => 
-    Logger.debug(s"Got the event $event from the client")
     for (kind <- (event\"kind").asOpt[String]; msg <- serverMessage(username, kind, event\"data")) {
-      Logger.debug(s"Pass the message $msg")
       self ! msg
     }
   } mapDone { _ => self ! Quit(username) }
@@ -108,7 +105,6 @@ trait GameRoom[State, Mov] extends Actor {
       sendAll(jsData("players"))
     }
     case Move(username, mv) => {
-      Logger.debug(s"Got the move $username, $mv")
       for (idx <- players.get(username)) {
         move(state, idx, mv) match {
           case Success(newState) => {

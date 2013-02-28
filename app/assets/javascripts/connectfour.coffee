@@ -31,8 +31,6 @@ $(document).ready ->
   # Socket message callback
   socket.onmessage = (msg) ->
     {kind, data} = $.parseJSON msg.data
-    console.log kind
-    console.log data
     switch kind
       when 'gamestate' then renderBoard data.board
 
