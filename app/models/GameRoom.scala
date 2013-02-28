@@ -4,7 +4,6 @@ import scala.util.{Try, Success, Failure}
 
 import akka.actor.Actor
 
-import play.api.Logger
 import play.api.libs.json.{JsValue, Json, JsUndefined, JsString}
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 
@@ -63,20 +62,12 @@ trait GameRoom[State, Mov] extends Actor {
   def serverMessage(id: String, kind: String, data: JsValue): Option[ServerMessage] = kind match {
     case "update" => data.asOpt[Array[String]] map { x => RequestUpdate(id, x.toSet) }
     case "changerole" => data.asOpt[Int] map { ChangeRole(id, _) }
-    case "move" => {
-      Logger.debug("Got a move message")
-      parseMove(data) map { Move(id, _) }
-    }
-    case _ => {
-      Logger.debug("Didn't find the right message type.")
-      None
-    }
+    case "move" => parseMove(data) map { Move(id, _) }
+    case _ => None
   }
 
   def iteratee(username: String) = Iteratee.foreach[JsValue] { event => 
-    Logger.debug(s"Got event $event")
     for (kind <- (event\"kind").asOpt[String]; msg <- serverMessage(username, kind, event\"data")) {
-      Logger.debug(s"Parsed message $msg")
       self ! msg
     }
   } mapDone { _ => self ! Quit(username) }
@@ -114,16 +105,13 @@ trait GameRoom[State, Mov] extends Actor {
       sendAll(jsData("players"))
     }
     case Move(username, mv) => {
-      Logger.debug(s"Got a move $username, $mv")
       for (idx <- players.get(username)) {
         move(state, idx, mv) match {
           case Success(newState) => {
-            Logger.debug(s"Successful move!")
             state = newState
             sendAll(jsData("gamestate"))
           }
           case Failure(e) =>
-            Logger.debug(s"Failed move! $e")
             members(username).push(jsMessage(s"You've made a bad move: $e"))
         }
       }
