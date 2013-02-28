@@ -1,5 +1,4 @@
-quickgame
-=========
+# quickgame
 
 Quick boardgame platform a la collabedit.
 
@@ -21,3 +20,14 @@ Below lists all currently supported message types, in the form [KIND]: [DATA]
   Sent by the client to request a change of player role.
 * move: Object encoding of a single move (specific to each game).
   Sent by the client to request a move.
+
+## TODO
+### Important
+This is a list of things I (Nathan) believe to be necessary for our MVP.
+* Ability to start a new game in a gameroom
+* Display current players and people in the room
+* Display messages sent from the server
+* Change role in client
+
+### Not Important
+* Look up FSM, Dispatchers, and other Akka stuff to see if we can make things more modular
