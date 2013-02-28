@@ -19,12 +19,6 @@ import play.api.Play.current
 
 
 object GameManager {
-  case class CreateGame(g: GameType)
-  case class JoinGame(g: GameType, id: String, username: String)
-  case class ContainsGame(g: GameType, id: String)
-
-  implicit val timeout = Timeout(10.seconds)
-
   type WebSocket[A] = (Iteratee[A, _], Enumerator[A])
   /** Create a new random ID string. */
   def generateId(isNew: String => Boolean): String = {
@@ -42,7 +36,9 @@ object GameManager {
 
 import GameManager._
 
+
 trait GameManager {
+
   /* Create a new game of the specified type. */
   def create(g: GameType): Future[String]
 
@@ -54,6 +50,8 @@ trait GameManager {
 }
 
 class GameManagerImpl extends GameManager {
+  implicit val timeout = Timeout(10.seconds)
+
   val ctx = TypedActor.context
 
   var games: Map[(GameType, String), ActorRef] = Map.empty
