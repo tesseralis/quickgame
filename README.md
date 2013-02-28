@@ -5,13 +5,8 @@ Quick boardgame platform a la collabedit.
 
 ## Websocket Protocol
 Quickgame uses JSON data passed through websockets to communicate between the client and server.
-Below is a list of possible key-value pairs. For example, the server can send:
-    {
-      "members": ["Nathan", "Sal", "Andrew"], 
-      "players": ["Nathan", "Sal"],
-      "message": "Andrew joined the room"
-    }
-The client is expected to update its members and players, and optionally flash the message.
+Each message is a JSON object of the form ``{"type": [TYPE], "data": [DATA]}``.
+Below lists all currently supported message types, in the form [TYPE]: [DATA]
 
 ### Server-to-client
 * members: Array of current members in the room
