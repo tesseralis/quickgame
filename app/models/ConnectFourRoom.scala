@@ -8,75 +8,56 @@ import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.json.{Json, JsValue}
 
 object ConnectFourRoom {
-  type Pos = Int
   type Player = Int
-  type Board = Map[(Int, Int), Player]
+  type Board = IndexedSeq[List[Player]]
+
+  def nextPlayer(p: Player): Player = 1 - p
+
+  def winningMove(board: Board, move: Int, player: Player): Boolean = {
+    // TODO Actual winning move.
+    false
+  }
 
   trait State {
     def board: Board
-    def move(player: Player, pos: Pos): Try[State] = this match {
-      case s @ GameStart(board, currentPlayer) => Try {
-        s
+    def move(player: Player, col: Int): Try[State] = this match {
+      case turn @ GameStart(board, currentPlayer) => Try {
+        require(player == currentPlayer, "Wrong player.")
+        require(board(col).length < 6, "Invalid board position")
+        val newBoard = board updated (col, currentPlayer :: board(col))
+        if (winningMove(newBoard, col, currentPlayer)) {
+          GameEnd(newBoard, currentPlayer)
+        } else if (newBoard.forall(_.size == 6)) {
+          GameEnd(newBoard, -1)
+        } else {
+          turn.copy(board = newBoard, currentPlayer = nextPlayer(currentPlayer))
+        }
       }
       case GameEnd(_, _) => Failure(new Exception("The game is completed."))
     }
   }
 
   case class GameStart(board: Board, currentPlayer: Player) extends State
+  /** Contains the state of the board at end game and the winning player (-1 if none) */
   case class GameEnd(board: Board, player: Player) extends State
-
-  case class Move(username: String, move: Pos)
 }
 
 import ConnectFourRoom._
 
-class ConnectFourRoom extends Actor {
-  var state: State = GameStart(Map.empty withDefaultValue -1, 0)
-  var players = Map[String, Int]()
-  var currentNumPlayers = 0
-  val (chatEnumerator, chatChannel) = Concurrent.broadcast[JsValue]
-
-  def iteratee(username: String): Iteratee[JsValue, _] = Iteratee.foreach[JsValue] { event =>
-    self ! Move(username, (event\"col").as[Int])
-  } mapDone { _ => self ! Quit(username) }
-
-  def sendState(state: State) {
-    val msg = Json.obj()
-    chatChannel.push(msg)
+class ConnectFourRoom extends GameRoom[State, Int] {
+  def maxPlayers = 2
+  def parseMove(data: JsValue) = data.asOpt[Int]
+  def encodeState(input: State) = {
+    val (stateString, player) = state match {
+      case GameStart(_, p) => ("gamestart", p)
+      case GameEnd(_, p) => ("gameend", p)
+    }
+    Json.obj(
+      "kind" -> stateString,
+      "player" -> player,
+      "board" -> Json.toJson(state.board)
+    )
   }
-
-  override def receive = {
-    case Join(username) =>
-      if (players contains username) {
-        sender ! CannotConnect("This username is already used")
-      } else if (currentNumPlayers >= 2) {
-        sender ! CannotConnect("Too many players!")
-      } else {
-        players += (username -> currentNumPlayers)
-        currentNumPlayers += 1
-        sender ! Connected(iteratee(username), chatEnumerator)
-      }
-    case Quit(username) =>
-      if (players contains username) {
-       players -= username 
-      }
-
-    case Move(username, move) =>
-      Logger.debug(username + " " + move)
-      players.get(username) map { playerNumber =>
-        state.move(playerNumber, move) match {
-          case Failure(e) => {
-            Logger.debug(s"Bad move $move made by $username: $e")
-          }
-          case Success(newState) => {
-            Logger.debug(s"Valid move $move made by $username")
-            state = newState
-            sendState(state)
-          }
-        }
-      } getOrElse {
-        Logger.debug(s"Unknown player $username")
-      }
-  }
-
+  def move(state: State, idx: Int, mv: Int) = state.move(idx, mv)
+  def initState = GameStart((0 until 7) map { _ => List.empty }, 0)
 }
