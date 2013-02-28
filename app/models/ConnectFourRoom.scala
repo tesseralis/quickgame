@@ -9,7 +9,7 @@ import play.api.libs.json.{Json, JsValue}
 
 object ConnectFourRoom {
   type Player = Int
-  type Board = IndexedSeq[List[Player]]
+  type Board = IndexedSeq[Seq[Player]]
 
   def nextPlayer(p: Player): Player = 1 - p
 
@@ -24,7 +24,7 @@ object ConnectFourRoom {
       case turn @ GameStart(board, currentPlayer) => Try {
         require(player == currentPlayer, "Wrong player.")
         require(board(col).length < 6, "Invalid board position")
-        val newBoard = board updated (col, currentPlayer :: board(col))
+        val newBoard = board updated (col,  board(col) :+ currentPlayer)
         if (winningMove(newBoard, col, currentPlayer)) {
           GameEnd(newBoard, currentPlayer)
         } else if (newBoard.forall(_.size == 6)) {
