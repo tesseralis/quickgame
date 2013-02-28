@@ -19,7 +19,6 @@ import play.api.Play.current
 
 
 object GameManager {
-  type WebSocket[A] = (Iteratee[A, _], Enumerator[A])
   /** Create a new random ID string. */
   def generateId(isNew: String => Boolean): String = {
     val id = Random.alphanumeric.take(5).mkString
@@ -34,7 +33,6 @@ object GameManager {
   }
 }
 
-import GameManager._
 
 
 trait GameManager {
@@ -50,6 +48,8 @@ trait GameManager {
 }
 
 class GameManagerImpl extends GameManager {
+  import GameManager._
+
   implicit val timeout = Timeout(10.seconds)
 
   val ctx = TypedActor.context
