@@ -13,9 +13,32 @@ object ConnectFourRoom {
 
   def nextPlayer(p: Player): Player = 1 - p
 
-  def winningMove(board: Board, move: Int, player: Player): Boolean = {
-    // TODO Actual winning move.
-    false
+  def winningMove(board: Board, col: Int, player: Player): Boolean = {
+    val defaultBoard = (for {
+      j <- 0 until 7
+      i <- 0 until board(j).length
+    } yield {
+      (i, j) -> board(j)(i)
+    }).toMap.withDefaultValue(-1)
+    val row = board(col).length - 1
+
+    val colWin = board(col).reverse.takeWhile(_ == player).length >= 4
+    val rowWin = {
+      val left = (1 to 3).takeWhile(k => defaultBoard((row, col-k)) == player).length
+      val right = (1 to 3).takeWhile(k => defaultBoard((row, col+k)) == player).length
+      (1 + left + right) >= 4
+    }
+    val diagWin = {
+      val left = (1 to 3).takeWhile(k => defaultBoard((row-k, col-k)) == player).length
+      val right = (1 to 3).takeWhile(k => defaultBoard((row+k, col+k)) == player).length
+      (1 + left + right) >= 4
+    }
+    val diagWin2 = {
+      val left = (1 to 3).takeWhile(k => defaultBoard((row-k, col+k)) == player).length
+      val right = (1 to 3).takeWhile(k => defaultBoard((row+k, col-k)) == player).length
+      (1 + left + right) >= 4
+    }
+    colWin || rowWin || diagWin || diagWin2
   }
 
   trait State {
@@ -24,7 +47,7 @@ object ConnectFourRoom {
       case turn @ GameStart(board, currentPlayer) => Try {
         require(player == currentPlayer, "Wrong player.")
         require(board(col).length < 6, "Invalid board position")
-        val newBoard = board updated (col,  board(col) :+ currentPlayer)
+        val newBoard = board updated (col, board(col) :+ currentPlayer)
         if (winningMove(newBoard, col, currentPlayer)) {
           GameEnd(newBoard, currentPlayer)
         } else if (newBoard.forall(_.size == 6)) {
