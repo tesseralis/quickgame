@@ -15,12 +15,12 @@ $(document).ready ->
 
   # Send a turn through the socket
   sendTurn = (row, col) ->
-    text = JSON.stringify {kind: 'move', row, col}
+    text = JSON.stringify {kind: 'move', data: {row, col}}
     socket.send text
 
   # Draw the board from the specified board state
   renderBoard = (jsonBoard) ->
-    board.eachTile (tile,i,j) ->
+    board.eachTile (tile, i, j) ->
       style = switch jsonBoard[i][j]
         when 0 then "btn-success"
         when 1 then "btn-primary"
@@ -28,19 +28,14 @@ $(document).ready ->
       tile.addClass(style)
   # Request the state so we have it initially
   socket.onopen = (evt) ->
-    socket.send JSON.stringify {kind: 'request'}
+    socket.send JSON.stringify {kind: 'update', data: ['members', 'players', 'gamestate']}
 
   # Socket message callback
   socket.onmessage = (msg) ->
+    console.log msg
     data = $.parseJSON msg.data
-    renderBoard data.state.board
     switch data.kind
-      when 'turn'
-        $('#message').text "It is #{data.state.player}'s turn"
-      when 'win'
-        $('#message').text "#{data.state.player} is the winner!"
-      when 'draw'
-        $('#message').text "It's a draw!"
+      when 'gamestate' then renderBoard data.data.board
 
   reset = () ->
     top = $('#ttcontainer').position().top
