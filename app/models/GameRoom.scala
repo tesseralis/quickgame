@@ -37,6 +37,7 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
   sealed trait ServerMessage
   case class ChangeRole(uid: String, role: Int) extends ServerMessage
   case class ChangeName(uid: String, name: String) extends ServerMessage
+  case class Restart(uid: String) extends ServerMessage
   case class RequestUpdate(uid: String, data: Set[String]) extends ServerMessage
   case class Move(uid: String, move: Mov) extends ServerMessage
   case class Message(uid: String, text: String) extends ServerMessage
@@ -81,6 +82,7 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
     case "changename" => data.asOpt[String] map { ChangeName(uid, _) }
     case "move" => parseMove(data) map { Move(uid, _) }
     case "message" => data.asOpt[String] map { Message(uid, _) }
+    case "restart" => Some(Restart(uid))
     case _ => None
   }
 
@@ -188,6 +190,22 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
     case RequestUpdate(uid, data) => {
       for (kind <- data) {
         members(uid).push(jsData(kind))
+      }
+    }
+    case Restart(uid) => {
+      members.get(uid) map { channel =>
+        // Can only start the game from the lobby
+        if (roomState == Lobby) {
+          if (players.size == maxPlayers) {
+            state = initState
+            roomState = Playing
+          }
+          else {
+            channel.push(jsMessage("Not enough players to start the game."))
+          }
+        } else {
+          channel.push(jsMessage("Can't restart while still playing."))
+        }
       }
     }
   }
