@@ -4,7 +4,7 @@ import scala.util.{Try, Success, Failure}
 
 import akka.actor.Actor
 
-import play.api.libs.json.{JsValue, Json, JsUndefined, JsString}
+import play.api.libs.json._
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 
 import utils.generateId
@@ -30,12 +30,27 @@ trait GameRoom[State, Mov] extends Actor {
    * Each represents a possible message sent from the client.
    */
   sealed trait ServerMessage
-  case class ChangeRole(uid: String, role: Int) extends ServerMessage
-  case class ChangeName(uid: String, name: String) extends ServerMessage
-  case class Restart(uid: String) extends ServerMessage
-  case class RequestUpdate(uid: String, data: Set[String]) extends ServerMessage
-  case class Move(uid: String, move: Mov) extends ServerMessage
-  case class Message(uid: String, text: String) extends ServerMessage
+  case class ChangeRole(role: Int) extends ServerMessage
+  case class ChangeName(name: String) extends ServerMessage
+  case object Restart extends ServerMessage
+  case class RequestUpdate(data: Set[String]) extends ServerMessage
+  case class Move(move: Mov) extends ServerMessage
+  case class Chat(text: String) extends ServerMessage
+
+  sealed trait ClientMessage[A] {
+    def data: A
+    def dataToJson: JsValue
+
+    def kindToJson: JsValue = JsString(toString.toLowerCase)
+    
+    def toJson: JsValue = Json.obj(
+      "kind" -> kindToJson,
+      "data" -> dataToJson
+    )
+  }
+  case class Members(data: Seq[String]) extends ClientMessage[Seq[String]] {
+    override def dataToJson = JsArray(data.map(JsString))
+  }
 
   // The number of players needed to play the game
   def maxPlayers: Int
@@ -73,15 +88,17 @@ trait GameRoom[State, Mov] extends Actor {
     }
   }
 
-  def serverMessage(uid: String, kind: String, data: JsValue): Option[ServerMessage] = kind match {
-    case "update" => data.asOpt[Array[String]] map { x => RequestUpdate(uid, x.toSet) }
-    case "changerole" => data.asOpt[Int] map { ChangeRole(uid, _) }
-    case "changename" => data.asOpt[String] map { ChangeName(uid, _) }
-    case "move" => parseMove(data) map { Move(uid, _) }
-    case "message" => data.asOpt[String] map { Message(uid, _) }
-    case "restart" => Some(Restart(uid))
+  case class Message(uid: String, msg: ServerMessage)
+
+  def serverMessage(uid: String, kind: String, data: JsValue): Option[Message] = (kind match {
+    case "update" => data.asOpt[Array[String]] map { x => RequestUpdate(x.toSet) }
+    case "changerole" => data.asOpt[Int] map { ChangeRole }
+    case "changename" => data.asOpt[String] map { ChangeName }
+    case "move" => parseMove(data) map { Move }
+    case "message" => data.asOpt[String] map { Chat }
+    case "restart" => Some(Restart)
     case _ => None
-  }
+  }) map { Message(uid, _) }
 
   def iteratee(uid: String) = Iteratee.foreach[JsValue] { event => 
     for (kind <- (event\"kind").asOpt[String]; msg <- serverMessage(uid, kind, event\"data")) {
@@ -136,7 +153,7 @@ trait GameRoom[State, Mov] extends Actor {
         roomState = Paused
       }
     }
-    case Move(uid, mv) => {
+    case Message(uid, Move(mv)) => {
       for (idx <- players.get(uid)) {
         if (roomState != Playing) {
           members(uid).push(jsMessage(s"The game hasn't started yet!"))
@@ -156,10 +173,10 @@ trait GameRoom[State, Mov] extends Actor {
         }
       }
     }
-    case Message(uid, message) => {
+    case Message(uid, Chat(message)) => {
       sendAll(jsMessage(s"${usernames(uid)}: $message"))
     }
-    case ChangeRole(uid, role) => {
+    case Message(uid, ChangeRole(role)) => {
       members.get(uid) map { channel =>
         if (roomState == Playing) {
           members(uid).push(jsMessage(s"Cannot change roles in the middle of a game."))
@@ -177,7 +194,7 @@ trait GameRoom[State, Mov] extends Actor {
         }
       }
     }
-    case ChangeName(uid, name) => {
+    case Message(uid, ChangeName(name)) => {
       members.get(uid) map { channel =>
         usernames += (uid -> name)
         sendAll(jsData("players"))
@@ -185,12 +202,12 @@ trait GameRoom[State, Mov] extends Actor {
       }
     }
 
-    case RequestUpdate(uid, data) => {
+    case Message(uid, RequestUpdate(data)) => {
       for (kind <- data) {
         members(uid).push(jsData(kind))
       }
     }
-    case Restart(uid) => {
+    case Message(uid, Restart) => {
       members.get(uid) map { channel =>
         // Can only start the game from the lobby
         if (roomState == Lobby) {
