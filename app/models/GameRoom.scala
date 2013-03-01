@@ -42,9 +42,9 @@ trait GameRoom[State, Mov] extends Actor {
 
   def jsData(kind: String): JsValue = {
     val data: JsValue = kind match {
-      case "members" => Json.arr(members.keys)
+      case "members" => Json.arr(members.keys.map(usernames))
       case "players" => Json.toJson((0 until maxPlayers).map { i =>
-        playersByIndex.get(i).getOrElse("")
+        playersByIndex.get(i).map(usernames).getOrElse("")
       })
       case "gamestate" => encodeState(state)
       case _ => JsUndefined("type not found")
@@ -80,6 +80,8 @@ trait GameRoom[State, Mov] extends Actor {
   var members = Map[String, Concurrent.Channel[JsValue]]()
   // A map of players to their position in the game
   var players = Map[String, Int]()
+  // Store the names of the members
+  var usernames = Map[String, String]()
 
   def playersByIndex: Map[Int, String] = players map { _.swap }
 
@@ -93,6 +95,7 @@ trait GameRoom[State, Mov] extends Actor {
       val uid = generateId(10, (!members.contains(_)))
       val (enumerator, channel) = Concurrent.broadcast[JsValue]
       members += (uid -> channel)
+      usernames += (uid -> nameOpt.getOrElse(generateId(10)))
       sendAll(jsData("members"))
       sender ! (iteratee(uid), enumerator)
       Logger.debug(s"Responded!")
