@@ -13,12 +13,19 @@ import utils.generateId
 case class Join(name: Option[String])
 case class Quit(uid: String)
 
+object RoomState extends Enumeration {
+  type RoomState = Value
+  val Playing, Paused, Lobby = Value
+}
+
+
 // todo Switch to an FSM model for this.
 /**
  * The GameRoom actor handles the logic for a single game room.
  * It adds and removes players, creates websockets, starts and stops the game, etc.
  */
 trait GameRoom[State, Mov] extends Actor {
+  import RoomState._
   /* 
    * Internal messages sent from the room's iteratee to itself.
    * Each represents a possible message sent from the client.
@@ -89,7 +96,9 @@ trait GameRoom[State, Mov] extends Actor {
 
   def playersByIndex: Map[Int, String] = players map { _.swap }
 
-  var state = initState
+  var state: State = initState
+
+  var roomState: RoomState = Lobby
 
   override def receive = {
     case Join(nameOpt) => {
@@ -105,12 +114,23 @@ trait GameRoom[State, Mov] extends Actor {
         players += (uid -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
         sendAll(jsData("players"))
       }
+
+      // If we have the required number of players, start or resume the game
+      if (players.size == maxPlayers && roomState != Playing) {
+        if (roomState == Lobby) {
+          state = initState
+        }
+        roomState = Playing
+      }
     }
     case Quit(uid) => {
       members -= uid
       players -= uid
       sendAll(jsData("members"))
       sendAll(jsData("players"))
+      if (roomState == Playing && players.size <= maxPlayers) {
+        roomState = Paused
+      }
     }
     case Move(uid, mv) => {
       for (idx <- players.get(uid)) {
@@ -129,15 +149,19 @@ trait GameRoom[State, Mov] extends Actor {
     }
     case ChangeRole(uid, role) => {
       members.get(uid) map { channel =>
-        // Remove player if invalid number is given
-        if (role <= 0 || role > maxPlayers) {
-          players -= uid
-          sendAll(jsData("players"))
-        } else if (playersByIndex.contains(role)) {
-          members(uid).push(jsMessage(s"That role is unavailable."))
+        if (roomState == Playing) {
+          members(uid).push(jsMessage(s"Cannot change roles in the middle of a game."))
         } else {
-          players += (uid -> role)
-          sendAll(jsData("players"))
+          // Remove player if invalid number is given
+          if (role <= 0 || role > maxPlayers) {
+            players -= uid
+            sendAll(jsData("players"))
+          } else if (playersByIndex.contains(role)) {
+            members(uid).push(jsMessage(s"That role is unavailable."))
+          } else {
+            players += (uid -> role)
+            sendAll(jsData("players"))
+          }
         }
       }
     }
