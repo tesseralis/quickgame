@@ -19,7 +19,7 @@ package object utils {
     /**
      * The function that returns the HTML view for this game type.
      */
-    def view: (String, String, play.api.mvc.RequestHeader) => play.api.templates.Html
+    def view: (String, play.api.mvc.RequestHeader) => play.api.templates.Html
 
     /**
      * The properties of the actor model for this game.

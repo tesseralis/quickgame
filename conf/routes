@@ -9,7 +9,7 @@ GET     /:game                  controllers.Application.gameIndex(game: GameType
 # Create a new game
 GET     /:game/new              controllers.Application.newGame(game: GameType)
 # Display a single game
-GET     /:game/:id              controllers.Application.game(game: GameType, id, username: Option[String])
+GET     /:game/:id              controllers.Application.game(game: GameType, id)
 # Websocket stream
 GET     /ws/:game/:id                controllers.Application.socket(game: GameType, id, username: Option[String])
 

@@ -1,6 +1,6 @@
-@(id: String, username: String)(implicit request: RequestHeader)
+@(id: String)(implicit request: RequestHeader)
 
-@game(controllers.Games.Chat, id, username) {
+@game(controllers.Games.Chat, id) {
 <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/chat.css")">
 
 <div class="container">

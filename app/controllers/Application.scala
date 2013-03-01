@@ -23,18 +23,16 @@ object Application extends Controller {
   def newGame(g: GameType) = Action {
     Async {
       gameManager.create(g).map { id =>
-        Redirect(routes.Application.game(g, id, None))
+        Redirect(routes.Application.game(g, id))
       }
     }
   }
 
-  // TODO Move the username out of the request parameter, cause that's just weird
-  def game(g: GameType, id: String, username: Option[String]) = Action { implicit request =>
+  def game(g: GameType, id: String) = Action { implicit request =>
     Async {
       gameManager.contains(g, id) map { gameFound =>
         if (gameFound) {
-          val username1 = username getOrElse scala.util.Random.alphanumeric.take(10).mkString
-          Ok(g.view(id, username1, request))
+          Ok(g.view(id, request))
         } else {
           NotFound(s"Could not find $g game #$id")
         }
