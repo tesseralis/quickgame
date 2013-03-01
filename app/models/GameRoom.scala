@@ -17,6 +17,10 @@ object RoomState extends Enumeration {
   type RoomState = Value
   val Playing, Paused, Lobby = Value
 }
+
+/**
+ * Message representation of a message from the client to the server.
+ */
 sealed trait ServerMessage
 case class ChangeRole(role: Int) extends ServerMessage
 case class ChangeName(name: String) extends ServerMessage
@@ -24,6 +28,10 @@ case object Restart extends ServerMessage
 case class RequestUpdate(data: Set[String]) extends ServerMessage
 case class Chat(text: String) extends ServerMessage
 
+
+/**
+ * Message representation of a message sent from the server to the client.
+ */
 sealed trait ClientMessage[A] {
   def data: A
   def dataToJson: JsValue
@@ -54,6 +62,9 @@ class Client(messageFromJson: JsValue => Option[ServerMessage]) extends Actor {
   } mapDone { _ => context.stop(self) }
 
   override def receive = {
+    // Pass the websocket up
+    case Join(name) => sender ! (iteratee, enumerator)
+
     case msg: ClientMessage[_] =>
       channel.push(msg.toJson)
   }
@@ -66,6 +77,11 @@ class Client(messageFromJson: JsValue => Option[ServerMessage]) extends Actor {
  */
 trait GameRoom[State, Mov] extends Actor {
   import RoomState._
+
+  /*
+   * The following defines the public interface for this class.
+   * Override these methods to implement room behavior.
+   */
 
   /** The number of players needed to play the game. */
   def maxPlayers: Int
@@ -85,14 +101,15 @@ trait GameRoom[State, Mov] extends Actor {
   /** Marker on the end of the game. */
   def gameEnd(state: State): Boolean
 
-  /* 
-   * Internal messages sent from the room's iteratee to itself.
-   * Each represents a possible message sent from the client.
-   */
   case class Move(move: Mov) extends ServerMessage
 
   case class GameState(data: State) extends ClientMessage[State] {
     override def dataToJson = stateToJson(state)
+  }
+
+  def memberNames = members.keys.map(usernames)
+  def playerNames = (0 until maxPlayers).map {i => 
+    playersByIndex.get(i).map(usernames).getOrElse("")
   }
 
   def jsData(kind: String): JsValue = {
