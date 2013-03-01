@@ -40,9 +40,9 @@ object ConnectFourRoom {
     colWin || rowWin || diagWin || diagWin2
   }
 
-  trait State extends GameState {
+  sealed trait State extends GameState[Int, State] {
     def board: Board
-    def move(player: Player, col: Int): Try[State] = this match {
+    override def move(player: Player, col: Int): Try[State] = this match {
       case turn @ GameStart(board, currentPlayer) => Try {
         require(player == currentPlayer, "Wrong player.")
         require(board(col).length < 6, "Invalid board position")
@@ -61,6 +61,17 @@ object ConnectFourRoom {
       case GameStart(_, _) => true
       case _ => false
     }
+    override def toJson = {
+      val (stateString, player) = this match {
+        case GameStart(_, p) => ("gamestart", p)
+        case GameEnd(_, p) => ("gameend", p)
+      }
+      Json.obj(
+        "kind" -> stateString,
+        "player" -> player,
+        "board" -> Json.toJson(board)
+      )
+    }
   }
 
   case class GameStart(board: Board, currentPlayer: Player) extends State
@@ -70,20 +81,8 @@ object ConnectFourRoom {
 
 import ConnectFourRoom._
 
-class ConnectFourRoom extends GameRoom[State, Int] {
+class ConnectFourRoom extends GameRoom[Int, State] {
   def maxPlayers = 2
   def parseMove(data: JsValue) = data.asOpt[Int]
-  def encodeState(input: State) = {
-    val (stateString, player) = state match {
-      case GameStart(_, p) => ("gamestart", p)
-      case GameEnd(_, p) => ("gameend", p)
-    }
-    Json.obj(
-      "kind" -> stateString,
-      "player" -> player,
-      "board" -> Json.toJson(state.board)
-    )
-  }
-  def move(state: State, idx: Int, mv: Int) = state.move(idx, mv)
   def initState = GameStart((0 until 7) map { _ => List.empty }, 0)
 }

@@ -18,9 +18,18 @@ object RoomState extends Enumeration {
   val Playing, Paused, Lobby = Value
 }
 
-trait GameState {
+/**
+ * Defines the state of a game and the type of move.
+ */
+trait GameState[M, S <: GameState[M, S]] {
   /** Returns true if the game has ended. */
   def gameEnd: Boolean
+
+  /** Return the result of moving the ith player. */
+  def move(i: Int, move: M): Try[S]
+
+  /** Return the JSON encoding of this state. */
+  def toJson: JsValue
 }
 
 // todo Switch to an FSM model for this.
@@ -28,7 +37,7 @@ trait GameState {
  * The GameRoom actor handles the logic for a single game room.
  * It adds and removes players, creates websockets, starts and stops the game, etc.
  */
-trait GameRoom[State <: GameState, Mov] extends Actor {
+trait GameRoom[Mov, State <: GameState[Mov, State]] extends Actor {
   import RoomState._
   /* 
    * Internal messages sent from the room's iteratee to itself.
@@ -48,10 +57,6 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
   // How to parse a JSON move
   def parseMove(input: JsValue): Option[Mov]
 
-  def encodeState(input: State): JsValue
-
-  def move(state: State, idx: Int, mv: Mov): Try[State]
-
   def initState: State
 
   def jsData(kind: String): JsValue = {
@@ -60,7 +65,7 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
       case "players" => Json.toJson((0 until maxPlayers).map { i =>
         playersByIndex.get(i).map(usernames).getOrElse("")
       })
-      case "gamestate" => encodeState(state)
+      case "gamestate" => state.toJson
       case _ => JsUndefined("type not found")
     }
     Json.obj("kind" -> kind, "data" -> data)
@@ -144,7 +149,7 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
         if (roomState != Playing) {
           members(uid).push(jsMessage(s"The game hasn't started yet!"))
         } else {
-          move(state, idx, mv) match {
+          state.move(idx, mv) match {
             case Success(newState) => {
               state = newState
               sendAll(jsData("gamestate"))
