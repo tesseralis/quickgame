@@ -178,6 +178,30 @@ trait Room[State, Mov] extends Actor {
         roomState = Paused
       }
     }
+
+    /* ServerMessages */
+    case Chat(text) => {
+      members.get(sender) map { name =>
+        notifyAll(Message(s"$name: $text"))
+      }
+    }
+    case ChangeRole(role) => {
+      if (roomState == Playing) {
+        sender ! Message("Cannot change roles in the middle of a game.")
+      } else {
+        if (role <= 0 || role > maxPlayers) {
+          // Remove player if invalid number is given.
+          players -= sender
+          notifyAll(Players(playerNames))
+        } else if (playersByIndex contains role) {
+          sender ! Message("That role is unavailable.")
+        } else {
+          // Send the role update information.
+          players += (sender -> role)
+          notifyAll(Players(playerNames))
+        }
+      }
+    }
   }
 }
 
