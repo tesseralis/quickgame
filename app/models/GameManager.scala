@@ -14,7 +14,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
-import utils.{GameType, WebSocket}
+import utils.{GameType, WebSocket, generateId}
 
 
 object GameManager {
@@ -22,14 +22,6 @@ object GameManager {
   /** Return the default game manager implemenation, an Akka typed actor. */
   def apply(): GameManager = TypedActor(Akka.system).typedActorOf(TypedProps[GameManagerImpl]())
 
-  /** Create a new random ID string. */
-  // todo Move to utils?
-  @scala.annotation.tailrec
-  def generateId(length: Int, isNew: String => Boolean = _ => true): String = {
-    // todo Case sensitive urls is very bad
-    val id = scala.util.Random.alphanumeric.take(length).mkString
-    if (isNew(id)) id else generateId(length, isNew)
-  }
 
   /** Returns a websocket demonstrating that you've found an error. */
   // todo Move to utils?
@@ -78,17 +70,14 @@ class GameManagerImpl extends GameManager {
 
   override def contains(g: GameType, id: String) = Future { games.contains((g, id)) }
 
-  override def join(g: GameType, id: String, nameOpt: Option[String]) =
+  override def join(g: GameType, id: String, name: Option[String]) = {
+    import play.api.Logger
+    Logger.debug(s"got a request for $g/$id with $name")
     games.get((g, id)) map { room =>
-      val username = nameOpt.getOrElse(generateId(10))
-      (room ? Join(username)) map {
-        // todo Get rid of the Connected/CannotConnect case classes...
-        case Connected(iteratee, enumerator) => {
-          (iteratee, enumerator)
-        }
-        case CannotConnect(error) => errorWebSocket[JsValue](Json.obj("error" -> error))
-      }
+      Logger.debug(s"We found $g/$id! Sending the join request...")
+      (room ? Join(name)).mapTo[WebSocket[JsValue]]
     } getOrElse {
       Future(errorWebSocket[JsValue](Json.obj("error" -> s"Room $g/$id does not exist.")))
     }
+  }
 }

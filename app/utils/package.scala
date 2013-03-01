@@ -4,6 +4,14 @@ package object utils {
   /** Convenience alias for Play's representation of a Websocket */
   type WebSocket[A] = (Iteratee[A, _], Enumerator[A])
 
+  /** Create a new random ID string. */
+  @scala.annotation.tailrec
+  def generateId(length: Int, isNew: String => Boolean = _ => true): String = {
+    // todo Case sensitive urls is very bad
+    val id = scala.util.Random.alphanumeric.take(length).mkString
+    if (isNew(id)) id else generateId(length, isNew)
+  }
+
   /**
    * Interface between the core application and individual games.
    */

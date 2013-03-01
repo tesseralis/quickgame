@@ -7,8 +7,10 @@ import akka.actor.Actor
 import play.api.libs.json.{JsValue, Json, JsUndefined, JsString}
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 
+import utils.generateId
+
 // Classes to handle the room state
-case class Join(username: String)
+case class Join(name: Option[String])
 case class Quit(username: String)
 
 // todo Switch to an FSM model for this.
@@ -83,20 +85,21 @@ trait GameRoom[State, Mov] extends Actor {
   var state = initState
 
   override def receive = {
-    case Join(username) => {
-      if (members contains username) {
-        sender ! CannotConnect("This username is already in use.")
-      } else {
-        val (enumerator, channel) = Concurrent.broadcast[JsValue]
-        members += (username -> channel)
-        sendAll(jsData("members"))
-        sender ! Connected(iteratee(username), enumerator)
+    case Join(nameOpt) => {
+      // todo Store the current username
+      import play.api.Logger
+      Logger.debug(s"Got a request from $nameOpt")
+      val username = generateId(10, (!members.contains(_)))
+      val (enumerator, channel) = Concurrent.broadcast[JsValue]
+      members += (username -> channel)
+      sendAll(jsData("members"))
+      sender ! (iteratee(username), enumerator)
+      Logger.debug(s"Responded!")
 
-        // Make this member a player if there are spots available
-        if (players.size < maxPlayers) {
-          players += (username -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
-          sendAll(jsData("players"))
-        }
+      // Make this member a player if there are spots available
+      if (players.size < maxPlayers) {
+        players += (username -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
+        sendAll(jsData("players"))
       }
     }
     case Quit(username) => {
