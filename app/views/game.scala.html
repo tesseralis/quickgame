@@ -1,5 +1,8 @@
-@(title: String)(content: Html)
+@(g: GameType, id: String, username: String)(content: Html)(implicit request: RequestHeader)
 
-@main(title) {
+@main(g.toString) {
+  <script>
+    var wsURL = '@routes.Application.stream(g, id, username).webSocketURL()'
+  </script>
 	@content
 }

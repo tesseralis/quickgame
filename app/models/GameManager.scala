@@ -17,6 +17,8 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
+import utils.GameType
+
 
 object GameManager {
   /** Create a new random ID string. */
@@ -58,12 +60,7 @@ class GameManagerImpl extends GameManager {
 
   override def create(g: GameType) = Future {
     val id = generateId(id => !games.contains((g, id)))
-    val room = g match {
-      case Chat => ctx.actorOf(Props[ChatRoom])
-      case Tictactoe => ctx.actorOf(Props[TicTacToeRoom])
-      case Connectfour => ctx.actorOf(Props[ConnectFourRoom])
-    }
-    games += ((g, id) -> room)
+    games += ((g, id) -> ctx.actorOf(g.props))
     id
   }
 
