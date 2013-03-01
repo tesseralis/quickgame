@@ -23,6 +23,7 @@ Below lists all currently supported message types, in the form [KIND]: [DATA]
   (multiple people in the room can have the same name).
 * move: Object encoding of a single move (specific to each game).
   Sent by the client to request a move.
+* message: String chat message from the client.
 
 ## TODO
 ### Important

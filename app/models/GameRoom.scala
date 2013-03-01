@@ -28,6 +28,7 @@ trait GameRoom[State, Mov] extends Actor {
   case class ChangeName(uid: String, name: String) extends ServerMessage
   case class RequestUpdate(uid: String, data: Set[String]) extends ServerMessage
   case class Move(uid: String, move: Mov) extends ServerMessage
+  case class Message(uid: String, text: String) extends ServerMessage
 
   // The number of players needed to play the game
   def maxPlayers: Int
@@ -68,6 +69,7 @@ trait GameRoom[State, Mov] extends Actor {
     case "changerole" => data.asOpt[Int] map { ChangeRole(uid, _) }
     case "changename" => data.asOpt[String] map { ChangeName(uid, _) }
     case "move" => parseMove(data) map { Move(uid, _) }
+    case "message" => data.asOpt[String] map { Message(uid, _) }
     case _ => None
   }
 
@@ -121,6 +123,9 @@ trait GameRoom[State, Mov] extends Actor {
             members(uid).push(jsMessage(s"You've made a bad move: $e"))
         }
       }
+    }
+    case Message(uid, message) => {
+      sendAll(jsMessage(s"${usernames(uid)}: $message"))
     }
     case ChangeRole(uid, role) => {
       members.get(uid) map { channel =>
