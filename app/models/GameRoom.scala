@@ -125,6 +125,7 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
       if (players.size == maxPlayers && roomState != Playing) {
         if (roomState == Lobby) {
           state = initState
+          sendAll(jsData("gamestate"))
         }
         roomState = Playing
       }
@@ -199,6 +200,7 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
           if (players.size == maxPlayers) {
             state = initState
             roomState = Playing
+            sendAll(jsData("gamestate"))
           }
           else {
             channel.push(jsMessage("Not enough players to start the game."))
