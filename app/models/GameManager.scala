@@ -71,10 +71,7 @@ class GameManagerImpl extends GameManager {
   override def contains(g: GameType, id: String) = Future { games.contains((g, id)) }
 
   override def join(g: GameType, id: String, name: Option[String]) = {
-    import play.api.Logger
-    Logger.debug(s"got a request for $g/$id with $name")
     games.get((g, id)) map { room =>
-      Logger.debug(s"We found $g/$id! Sending the join request...")
       (room ? Join(name)).mapTo[WebSocket[JsValue]]
     } getOrElse {
       Future(errorWebSocket[JsValue](Json.obj("error" -> s"Room $g/$id does not exist.")))

@@ -91,16 +91,12 @@ trait GameRoom[State, Mov] extends Actor {
 
   override def receive = {
     case Join(nameOpt) => {
-      // todo Store the current username
-      import play.api.Logger
-      Logger.debug(s"Got a request from $nameOpt")
       val uid = generateId(10, (!members.contains(_)))
       val (enumerator, channel) = Concurrent.broadcast[JsValue]
       members += (uid -> channel)
       usernames += (uid -> nameOpt.getOrElse(generateId(10)))
       sendAll(jsData("members"))
       sender ! (iteratee(uid), enumerator)
-      Logger.debug(s"Responded!")
 
       // Make this member a player if there are spots available
       if (players.size < maxPlayers) {
