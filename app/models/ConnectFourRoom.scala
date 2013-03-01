@@ -40,7 +40,7 @@ object ConnectFourRoom {
     colWin || rowWin || diagWin || diagWin2
   }
 
-  trait State extends GameState {
+  trait State {
     def board: Board
     def move(player: Player, col: Int): Try[State] = this match {
       case turn @ GameStart(board, currentPlayer) => Try {
@@ -57,7 +57,7 @@ object ConnectFourRoom {
       }
       case GameEnd(_, _) => Failure(new Exception("The game is completed."))
     }
-    override def gameEnd = this match {
+    def gameEnd = this match {
       case GameStart(_, _) => true
       case _ => false
     }
@@ -71,9 +71,9 @@ object ConnectFourRoom {
 import ConnectFourRoom._
 
 class ConnectFourRoom extends GameRoom[State, Int] {
-  def maxPlayers = 2
-  def parseMove(data: JsValue) = data.asOpt[Int]
-  def encodeState(input: State) = {
+  override def maxPlayers = 2
+  override def parseMove(data: JsValue) = data.asOpt[Int]
+  override def encodeState(input: State) = {
     val (stateString, player) = state match {
       case GameStart(_, p) => ("gamestart", p)
       case GameEnd(_, p) => ("gameend", p)
@@ -84,6 +84,7 @@ class ConnectFourRoom extends GameRoom[State, Int] {
       "board" -> Json.toJson(state.board)
     )
   }
-  def move(state: State, idx: Int, mv: Int) = state.move(idx, mv)
-  def initState = GameStart((0 until 7) map { _ => List.empty }, 0)
+  override def move(state: State, idx: Int, mv: Int) = state.move(idx, mv)
+  override def initState = GameStart((0 until 7) map { _ => List.empty }, 0)
+  override def gameEnd = state.gameEnd
 }

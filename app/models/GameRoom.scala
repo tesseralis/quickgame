@@ -18,17 +18,12 @@ object RoomState extends Enumeration {
   val Playing, Paused, Lobby = Value
 }
 
-trait GameState {
-  /** Returns true if the game has ended. */
-  def gameEnd: Boolean
-}
-
 // todo Switch to an FSM model for this.
 /**
  * The GameRoom actor handles the logic for a single game room.
  * It adds and removes players, creates websockets, starts and stops the game, etc.
  */
-trait GameRoom[State <: GameState, Mov] extends Actor {
+trait GameRoom[State, Mov] extends Actor {
   import RoomState._
   /* 
    * Internal messages sent from the room's iteratee to itself.
@@ -53,6 +48,8 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
   def move(state: State, idx: Int, mv: Mov): Try[State]
 
   def initState: State
+
+  def gameEnd: Boolean
 
   def jsData(kind: String): JsValue = {
     val data: JsValue = kind match {
@@ -149,7 +146,7 @@ trait GameRoom[State <: GameState, Mov] extends Actor {
               state = newState
               sendAll(jsData("gamestate"))
               // Move back to our lobby if necessary.
-              if (state.gameEnd) {
+              if (gameEnd) {
                 roomState = Lobby
               }
             }
