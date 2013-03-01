@@ -25,9 +25,10 @@ object GameManager {
   /** Create a new random ID string. */
   // todo Move to utils?
   @scala.annotation.tailrec
-  def generateId(isNew: String => Boolean): String = {
-    val id = scala.util.Random.alphanumeric.take(5).mkString
-    if (isNew(id)) id else generateId(isNew)
+  def generateId(length: Int, isNew: String => Boolean = _ => true): String = {
+    // todo Case sensitive urls is very bad
+    val id = scala.util.Random.alphanumeric.take(length).mkString
+    if (isNew(id)) id else generateId(length, isNew)
   }
 
   /** Returns a websocket demonstrating that you've found an error. */
@@ -49,8 +50,11 @@ trait GameManager {
   /** Check whether the given game exists. */
   def contains(g: GameType, id: String): Future[Boolean]
 
-  /** Join the given game. */
-  def join(g: GameType, id: String, username: String): Future[WebSocket[JsValue]]
+  /**
+   * Join the given game.
+   * @param name The name of the user joining. A default name will be generated if not given.
+   */
+  def join(g: GameType, id: String, name: Option[String]): Future[WebSocket[JsValue]]
 }
 
 // todo Should we make a RoomManager class to manage the rooms for each specific game?
@@ -67,15 +71,16 @@ class GameManagerImpl extends GameManager {
   var games: Map[(GameType, String), ActorRef] = Map.empty
 
   override def create(g: GameType) = Future {
-    val id = generateId(id => !games.contains((g, id)))
+    val id = generateId(5, id => !games.contains((g, id)))
     games += ((g, id) -> ctx.actorOf(g.props))
     id
   }
 
   override def contains(g: GameType, id: String) = Future { games.contains((g, id)) }
 
-  override def join(g: GameType, id: String, username: String) =
+  override def join(g: GameType, id: String, nameOpt: Option[String]) =
     games.get((g, id)) map { room =>
+      val username = nameOpt.getOrElse(generateId(10))
       (room ? Join(username)) map {
         // todo Get rid of the Connected/CannotConnect case classes...
         case Connected(iteratee, enumerator) => {

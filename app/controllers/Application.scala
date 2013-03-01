@@ -42,7 +42,7 @@ object Application extends Controller {
     }
   }
 
-  def socket(g: GameType, id: String, username: String) = WebSocket.async[JsValue] { request =>
+  def socket(g: GameType, id: String, username: Option[String]) = WebSocket.async[JsValue] { request =>
     gameManager.join(g, id, username)
   }
 
