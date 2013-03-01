@@ -24,7 +24,7 @@ object TicTacToeRoom {
       (0 until 3).forall(k => defaultBoard(k, 2-k) == player)
   }
 
-  trait State {
+  trait State extends GameState {
     def board: Board
     def move(player: Player, pos: Pos): Try[State] = this match {
       case turn @ Turn(board, currentPlayer) => Try {
@@ -41,6 +41,10 @@ object TicTacToeRoom {
         }
       }
       case _ => Failure(new Exception("The game is completed."))
+    }
+    override def gameEnd = this match {
+      case Turn(_, _) => false
+      case _ => true
     }
   }
 
