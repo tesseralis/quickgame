@@ -51,6 +51,15 @@ trait GameRoom[State, Mov] extends Actor {
   case class Members(data: Seq[String]) extends ClientMessage[Seq[String]] {
     override def dataToJson = JsArray(data.map(JsString))
   }
+  case class Players(data: Seq[String]) extends ClientMessage[Seq[String]] {
+    override def dataToJson = JsArray(data.map(JsString))
+  }
+  case class GameState(data: State) extends ClientMessage[State] {
+    override def dataToJson = encodeState(state)
+  }
+  case class Message(data: String) extends ClientMessage[String] {
+    override def dataToJson = JsString(data)
+  }
 
   // The number of players needed to play the game
   def maxPlayers: Int
@@ -88,9 +97,9 @@ trait GameRoom[State, Mov] extends Actor {
     }
   }
 
-  case class Message(uid: String, msg: ServerMessage)
+  case class MessageWrapper(uid: String, msg: ServerMessage)
 
-  def serverMessage(uid: String, kind: String, data: JsValue): Option[Message] = (kind match {
+  def serverMessage(uid: String, kind: String, data: JsValue): Option[MessageWrapper] = (kind match {
     case "update" => data.asOpt[Array[String]] map { x => RequestUpdate(x.toSet) }
     case "changerole" => data.asOpt[Int] map { ChangeRole }
     case "changename" => data.asOpt[String] map { ChangeName }
@@ -98,7 +107,7 @@ trait GameRoom[State, Mov] extends Actor {
     case "message" => data.asOpt[String] map { Chat }
     case "restart" => Some(Restart)
     case _ => None
-  }) map { Message(uid, _) }
+  }) map { MessageWrapper(uid, _) }
 
   def iteratee(uid: String) = Iteratee.foreach[JsValue] { event => 
     for (kind <- (event\"kind").asOpt[String]; msg <- serverMessage(uid, kind, event\"data")) {
@@ -153,7 +162,7 @@ trait GameRoom[State, Mov] extends Actor {
         roomState = Paused
       }
     }
-    case Message(uid, Move(mv)) => {
+    case MessageWrapper(uid, Move(mv)) => {
       for (idx <- players.get(uid)) {
         if (roomState != Playing) {
           members(uid).push(jsMessage(s"The game hasn't started yet!"))
@@ -173,10 +182,10 @@ trait GameRoom[State, Mov] extends Actor {
         }
       }
     }
-    case Message(uid, Chat(message)) => {
+    case MessageWrapper(uid, Chat(message)) => {
       sendAll(jsMessage(s"${usernames(uid)}: $message"))
     }
-    case Message(uid, ChangeRole(role)) => {
+    case MessageWrapper(uid, ChangeRole(role)) => {
       members.get(uid) map { channel =>
         if (roomState == Playing) {
           members(uid).push(jsMessage(s"Cannot change roles in the middle of a game."))
@@ -194,7 +203,7 @@ trait GameRoom[State, Mov] extends Actor {
         }
       }
     }
-    case Message(uid, ChangeName(name)) => {
+    case MessageWrapper(uid, ChangeName(name)) => {
       members.get(uid) map { channel =>
         usernames += (uid -> name)
         sendAll(jsData("players"))
@@ -202,12 +211,12 @@ trait GameRoom[State, Mov] extends Actor {
       }
     }
 
-    case Message(uid, RequestUpdate(data)) => {
+    case MessageWrapper(uid, RequestUpdate(data)) => {
       for (kind <- data) {
         members(uid).push(jsData(kind))
       }
     }
-    case Message(uid, Restart) => {
+    case MessageWrapper(uid, Restart) => {
       members.get(uid) map { channel =>
         // Can only start the game from the lobby
         if (roomState == Lobby) {
