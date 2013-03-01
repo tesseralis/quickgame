@@ -171,15 +171,41 @@ trait Room[State, Mov] extends Actor {
       members -= client
       notifyAll(Members(memberNames))
 
-      players -= client
-      notifyAll(Players(playerNames))
+      // Pause the game if a player left.
+      if (players contains client) {
+        players -= client
+        notifyAll(Players(playerNames))
+        if (roomState == Playing) {
+          roomState = Paused
+        }
+      }
 
-      if (roomState == Playing && players.size <= maxPlayers) {
-        roomState = Paused
+      // Destroy this room if all children are gone.
+      if (members.size == 0) {
+        context.stop(self)
       }
     }
 
     /* ServerMessages */
+    case Move(mv) => {
+      players.get(sender) map { idx =>
+        if (roomState != Playing) {
+          sender ! Message("The game hasn't started yet!")
+        } else {
+          move(gameState, idx, mv) match {
+            case Success(newState) => {
+              gameState = newState
+              notifyAll(GameState(newState))
+              if (gameEnd(newState)) {
+                roomState = Lobby
+              }
+            }
+            case Failure(e) =>
+              sender ! Message(s"You've made a bad move: $e")
+          }
+        }
+      }
+    }
     case Chat(text) => {
       members.get(sender) map { name =>
         notifyAll(Message(s"$name: $text"))
@@ -199,6 +225,34 @@ trait Room[State, Mov] extends Actor {
           // Send the role update information.
           players += (sender -> role)
           notifyAll(Players(playerNames))
+        }
+      }
+    }
+    case ChangeName(name) => {
+      members.get(sender) map { _ =>
+        members += (sender -> name)
+        notifyAll(Members(memberNames))
+        notifyAll(Players(playerNames))
+      }
+    }
+    case RequestUpdate(data) => {
+      // TODO Request specific data...
+      notifyAll(Members(memberNames))
+      notifyAll(Players(playerNames))
+      notifyAll(GameState(gameState))
+    }
+    case Restart => {
+      members.get(sender) map { _ =>
+        if (roomState == Lobby) {
+          if (players.size == maxPlayers) {
+            gameState = initState
+            roomState = Playing
+            notifyAll(GameState(gameState))
+          } else {
+            sender ! Message("Not enough players to start the game.")
+          }
+        } else {
+          sender ! Message("Can't restart while still playing.")
         }
       }
     }
