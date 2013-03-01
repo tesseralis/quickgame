@@ -14,6 +14,7 @@ import play.api.libs.concurrent._
 import play.api.mvc.BodyParsers._
 
 import models._
+import utils._
 
 object Application extends Controller {
 
@@ -42,11 +43,7 @@ object Application extends Controller {
       gameManager.contains(g, id) map { gameFound =>
         if (gameFound) {
           val username1 = username getOrElse Random.alphanumeric.take(10).mkString
-          g match {
-            case Tictactoe => Ok(views.html.tictactoe(id, username1))
-            case Chat => Ok(views.html.chat(id, username1))
-            case Connectfour => Ok(views.html.connectfour(id, username1))
-          }
+          Ok(g.view(id, username1, request))
         } else {
           NotFound(s"Could not find $g game #$id")
         }

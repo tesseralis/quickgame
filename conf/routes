@@ -5,13 +5,13 @@
 # Home page
 GET     /                           controllers.Application.index
 # Display landing page for a game
-GET     /:game                  controllers.Application.gameIndex(game: models.GameType)
+GET     /:game                  controllers.Application.gameIndex(game: GameType)
 # Create a new game
-GET     /:game/new              controllers.Application.newGame(game: models.GameType)
+GET     /:game/new              controllers.Application.newGame(game: GameType)
 # Display a single game
-GET     /:game/:id              controllers.Application.game(game: models.GameType, id, username: Option[String])
+GET     /:game/:id              controllers.Application.game(game: GameType, id, username: Option[String])
 # Websocket stream
-GET     /:game/:id/stream       controllers.Application.stream(game: models.GameType, id, username)
+GET     /:game/:id/stream       controllers.Application.stream(game: GameType, id, username)
 
 # Map static resources from the /public folder to the /assets URL path
 GET     /assets/*file               controllers.Assets.at(path="/public", file)

@@ -14,8 +14,8 @@ object ApplicationBuild extends Build {
 
     val main = play.Project(appName, appVersion, appDependencies).settings(
       // Add your own project settings here      
-      routesImport += "binders._"
-      
+      routesImport ++= Seq("_root_.utils.GameType", "_root_.utils.GameType._"),
+      templatesImport += "_root_.utils._"
     )
 
 }

@@ -3,7 +3,7 @@
 @game("Connect Four") {
 <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/tictactoe.css")">
 <script>
-  var wsURL = '@routes.Application.stream(models.Connectfour, id, username).webSocketURL()'
+  var wsURL = '@routes.Application.stream(Connectfour, id, username).webSocketURL()'
 </script>
 
 <div class="container ">
