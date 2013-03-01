@@ -17,6 +17,47 @@ object RoomState extends Enumeration {
   type RoomState = Value
   val Playing, Paused, Lobby = Value
 }
+sealed trait ServerMessage
+case class ChangeRole(role: Int) extends ServerMessage
+case class ChangeName(name: String) extends ServerMessage
+case object Restart extends ServerMessage
+case class RequestUpdate(data: Set[String]) extends ServerMessage
+case class Chat(text: String) extends ServerMessage
+
+sealed trait ClientMessage[A] {
+  def data: A
+  def dataToJson: JsValue
+
+  def kindToJson: JsValue = JsString(toString.toLowerCase)
+  
+  def toJson: JsValue = Json.obj(
+    "kind" -> kindToJson,
+    "data" -> dataToJson
+  )
+}
+case class Members(data: Seq[String]) extends ClientMessage[Seq[String]] {
+  override def dataToJson = JsArray(data.map(JsString))
+}
+case class Players(data: Seq[String]) extends ClientMessage[Seq[String]] {
+  override def dataToJson = JsArray(data.map(JsString))
+}
+case class Message(data: String) extends ClientMessage[String] {
+  override def dataToJson = JsString(data)
+}
+
+class Client(messageFromJson: JsValue => Option[ServerMessage]) extends Actor {
+  val (enumerator, channel) = Concurrent.broadcast[JsValue]
+  val iteratee = Iteratee.foreach[JsValue] { json =>
+    for (msg <- messageFromJson(json)) {
+      context.parent ! msg
+    }
+  } mapDone { _ => context.stop(self) }
+
+  override def receive = {
+    case msg: ClientMessage[_] =>
+      channel.push(msg.toJson)
+  }
+}
 
 // todo Switch to an FSM model for this.
 /**
@@ -48,36 +89,10 @@ trait GameRoom[State, Mov] extends Actor {
    * Internal messages sent from the room's iteratee to itself.
    * Each represents a possible message sent from the client.
    */
-  sealed trait ServerMessage
-  case class ChangeRole(role: Int) extends ServerMessage
-  case class ChangeName(name: String) extends ServerMessage
-  case object Restart extends ServerMessage
-  case class RequestUpdate(data: Set[String]) extends ServerMessage
   case class Move(move: Mov) extends ServerMessage
-  case class Chat(text: String) extends ServerMessage
 
-  sealed trait ClientMessage[A] {
-    def data: A
-    def dataToJson: JsValue
-
-    def kindToJson: JsValue = JsString(toString.toLowerCase)
-    
-    def toJson: JsValue = Json.obj(
-      "kind" -> kindToJson,
-      "data" -> dataToJson
-    )
-  }
-  case class Members(data: Seq[String]) extends ClientMessage[Seq[String]] {
-    override def dataToJson = JsArray(data.map(JsString))
-  }
-  case class Players(data: Seq[String]) extends ClientMessage[Seq[String]] {
-    override def dataToJson = JsArray(data.map(JsString))
-  }
   case class GameState(data: State) extends ClientMessage[State] {
     override def dataToJson = stateToJson(state)
-  }
-  case class Message(data: String) extends ClientMessage[String] {
-    override def dataToJson = JsString(data)
   }
 
   def jsData(kind: String): JsValue = {
