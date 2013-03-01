@@ -18,6 +18,9 @@ Below lists all currently supported message types, in the form [KIND]: [DATA]
   Sent by the client in order to force the server to send data to the client.
 * changerole: Number specifying the role to take.
   Sent by the client to request a change of player role.
+* changename: String specifying the name to take.
+  Sent by the client to request a change in name
+  (multiple people in the room can have the same name).
 * move: Object encoding of a single move (specific to each game).
   Sent by the client to request a move.
 
