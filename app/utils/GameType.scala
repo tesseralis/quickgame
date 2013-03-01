@@ -1,19 +1,18 @@
 package utils
 
-
-/** Defines the interface for a game. */
+/**
+ * Interface between the core application and individual games.
+ */
 trait GameType {
   /**
-   * Return the function that returns the HTML view for this game type.
+   * The function that returns the HTML view for this game type.
    */
   def view: (String, String, play.api.mvc.RequestHeader) => play.api.templates.Html
 
   /**
-   * The type of the room for the game
+   * The properties of the actor model for this game.
+   * todo: I'd like to just store the type for the game, but that's not possible because of type
+   * erasure. Oh well, this way, I suppose we can specify the configuration of the properties.
    */
-   // TODO: Can we replace this with a type?
    def props: akka.actor.Props
 }
-
-/* DEFINE GAME TYPE CONFIGURATION HERE */
-
