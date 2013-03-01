@@ -57,11 +57,11 @@ import TicTacToeRoom._
 
 class TicTacToeRoom extends GameRoom[State, Pos] {
   override def maxPlayers = 2
-  override def parseMove(data: JsValue) = for {
+  override def moveFromJson(data: JsValue) = for {
     row <- (data\"row").asOpt[Int]
     col <- (data\"col").asOpt[Int]
   } yield (row, col)
-  override def encodeState(input: State) = {
+  override def stateToJson(input: State) = {
     val (stateString, player) = state match {
       case Turn(_, p) => ("turn", p)
       case Win(_, p) => ("win", p)
@@ -80,5 +80,5 @@ class TicTacToeRoom extends GameRoom[State, Pos] {
   }
   override def move(state: State, idx: Int, mv: Pos) = state.move(idx, mv)
   override def initState = Turn(Map.empty, 0)
-  override def gameEnd = state.gameEnd
+  override def gameEnd(state: State) = state.gameEnd
 }

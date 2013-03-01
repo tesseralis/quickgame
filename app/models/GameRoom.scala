@@ -25,6 +25,25 @@ object RoomState extends Enumeration {
  */
 trait GameRoom[State, Mov] extends Actor {
   import RoomState._
+
+  /** The number of players needed to play the game. */
+  def maxPlayers: Int
+
+  /** How to convert a move from JSON input. */
+  def moveFromJson(input: JsValue): Option[Mov]
+
+  /** How to transform a state into JSON. */
+  def stateToJson(input: State): JsValue
+
+  /** Move from one action to another. */
+  def move(state: State, idx: Int, mv: Mov): Try[State]
+
+  /** Initial state of the game. */
+  def initState: State
+
+  /** Marker on the end of the game. */
+  def gameEnd(state: State): Boolean
+
   /* 
    * Internal messages sent from the room's iteratee to itself.
    * Each represents a possible message sent from the client.
@@ -55,25 +74,11 @@ trait GameRoom[State, Mov] extends Actor {
     override def dataToJson = JsArray(data.map(JsString))
   }
   case class GameState(data: State) extends ClientMessage[State] {
-    override def dataToJson = encodeState(state)
+    override def dataToJson = stateToJson(state)
   }
   case class Message(data: String) extends ClientMessage[String] {
     override def dataToJson = JsString(data)
   }
-
-  // The number of players needed to play the game
-  def maxPlayers: Int
-
-  // How to parse a JSON move
-  def parseMove(input: JsValue): Option[Mov]
-
-  def encodeState(input: State): JsValue
-
-  def move(state: State, idx: Int, mv: Mov): Try[State]
-
-  def initState: State
-
-  def gameEnd: Boolean
 
   def jsData(kind: String): JsValue = {
     val data: JsValue = kind match {
@@ -81,7 +86,7 @@ trait GameRoom[State, Mov] extends Actor {
       case "players" => Json.toJson((0 until maxPlayers).map { i =>
         playersByIndex.get(i).map(usernames).getOrElse("")
       })
-      case "gamestate" => encodeState(state)
+      case "gamestate" => stateToJson(state)
       case _ => JsUndefined("type not found")
     }
     Json.obj("kind" -> kind, "data" -> data)
@@ -103,7 +108,7 @@ trait GameRoom[State, Mov] extends Actor {
     case "update" => data.asOpt[Array[String]] map { x => RequestUpdate(x.toSet) }
     case "changerole" => data.asOpt[Int] map { ChangeRole }
     case "changename" => data.asOpt[String] map { ChangeName }
-    case "move" => parseMove(data) map { Move }
+    case "move" => moveFromJson(data) map { Move }
     case "message" => data.asOpt[String] map { Chat }
     case "restart" => Some(Restart)
     case _ => None
@@ -172,7 +177,7 @@ trait GameRoom[State, Mov] extends Actor {
               state = newState
               sendAll(jsData("gamestate"))
               // Move back to our lobby if necessary.
-              if (gameEnd) {
+              if (gameEnd(state)) {
                 roomState = Lobby
               }
             }
