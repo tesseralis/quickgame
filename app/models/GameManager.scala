@@ -17,7 +17,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
-import utils.GameType
+import utils.{GameType, WebSocket}
 
 
 object GameManager {
