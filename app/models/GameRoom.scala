@@ -25,6 +25,7 @@ trait GameRoom[State, Mov] extends Actor {
    */
   sealed trait ServerMessage
   case class ChangeRole(uid: String, role: Int) extends ServerMessage
+  case class ChangeName(uid: String, name: String) extends ServerMessage
   case class RequestUpdate(uid: String, data: Set[String]) extends ServerMessage
   case class Move(uid: String, move: Mov) extends ServerMessage
 
@@ -65,6 +66,7 @@ trait GameRoom[State, Mov] extends Actor {
   def serverMessage(uid: String, kind: String, data: JsValue): Option[ServerMessage] = kind match {
     case "update" => data.asOpt[Array[String]] map { x => RequestUpdate(uid, x.toSet) }
     case "changerole" => data.asOpt[Int] map { ChangeRole(uid, _) }
+    case "changename" => data.asOpt[String] map { ChangeName(uid, _) }
     case "move" => parseMove(data) map { Move(uid, _) }
     case _ => None
   }
@@ -138,6 +140,14 @@ trait GameRoom[State, Mov] extends Actor {
         }
       }
     }
+    case ChangeName(uid, name) => {
+      members.get(uid) map { channel =>
+        usernames += (uid -> name)
+        sendAll(jsData("players"))
+        sendAll(jsData("members"))
+      }
+    }
+
     case RequestUpdate(uid, data) => {
       for (kind <- data) {
         members(uid).push(jsData(kind))
