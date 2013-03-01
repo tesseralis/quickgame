@@ -3,7 +3,7 @@ package models
 import scala.util.{Try, Success, Failure}
 import scala.concurrent.duration._
 
-import akka.actor.{Actor, ActorRef, Props}
+import akka.actor._
 import akka.pattern.{ask, pipe}
 import akka.util.Timeout
 
@@ -47,6 +47,7 @@ sealed trait ClientMessage[A] {
     "data" -> dataToJson
   )
 }
+
 case class Members(data: Seq[String]) extends ClientMessage[Seq[String]] {
   override def dataToJson = JsArray(data.map(JsString))
 }
@@ -141,6 +142,7 @@ trait Room[State, Mov] extends Actor {
     case msg @ Join(name) => {
       // Constructor?
       val client = context.actorOf(Props[Client])
+      context.watch(client)
 
       // Send the websocket to the sender
       (client ? msg) pipeTo sender
@@ -162,6 +164,18 @@ trait Room[State, Mov] extends Actor {
           notifyAll(GameState(gameState))
         }
         roomState = Playing
+      }
+    }
+
+    case Terminated(client) => {
+      members -= client
+      notifyAll(Members(memberNames))
+
+      players -= client
+      notifyAll(Players(playerNames))
+
+      if (roomState == Playing && players.size <= maxPlayers) {
+        roomState = Paused
       }
     }
   }
