@@ -1,10 +1,7 @@
 @(id: String, username: String)(implicit request: RequestHeader)
 
-@game("Tic Tac Toe") {
+@game(controllers.Games.TicTacToe, id, username) {
 <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/tictactoe.css")">
-<script>
-  var wsURL = '@routes.Application.stream(Tictactoe, id, username).webSocketURL()'
-</script>
 
 <div class="container ">
 
