@@ -2,7 +2,7 @@
 
 @main(g.toString) {
   <script>
-    var wsURL = '@routes.Application.stream(g, id, username).webSocketURL()'
+    var wsURL = '@routes.Application.socket(g, id, username).webSocketURL()'
   </script>
 	@content
 }
