@@ -24,9 +24,9 @@ object TicTacToeRoom {
       (0 until 3).forall(k => defaultBoard(k, 2-k) == player)
   }
 
-  sealed trait State extends GameState[Pos, State] {
+  trait State extends GameState {
     def board: Board
-    override def move(player: Player, pos: Pos): Try[State] = this match {
+    def move(player: Player, pos: Pos): Try[State] = this match {
       case turn @ Turn(board, currentPlayer) => Try {
         require(player == currentPlayer, "Wrong player.")
         require(!board.contains(pos), "Invalid board position.")
@@ -46,23 +46,6 @@ object TicTacToeRoom {
       case Turn(_, _) => false
       case _ => true
     }
-    override def toJson = {
-      val (stateString, player) = this match {
-        case Turn(_, p) => ("turn", p)
-        case Win(_, p) => ("win", p)
-        case Draw(_) => ("draw", -1)
-      }
-      val jsonBoard = JsArray(for (i <- 0 until 3) yield {
-        JsArray(for (j <- 0 until 3) yield {
-          JsNumber(BigDecimal(board.get((i, j)).getOrElse(-1)))
-        })
-      })
-      Json.obj(
-        "kind" -> stateString,
-        "player" -> player,
-        "board" -> jsonBoard
-      )
-    }
   }
 
   case class Turn(board: Board, currentPlayer: Player) extends State
@@ -72,11 +55,29 @@ object TicTacToeRoom {
 
 import TicTacToeRoom._
 
-class TicTacToeRoom extends GameRoom[Pos, State] {
+class TicTacToeRoom extends GameRoom[State, Pos] {
   def maxPlayers = 2
   def parseMove(data: JsValue) = for {
     row <- (data\"row").asOpt[Int]
     col <- (data\"col").asOpt[Int]
   } yield (row, col)
+  def encodeState(input: State) = {
+    val (stateString, player) = state match {
+      case Turn(_, p) => ("turn", p)
+      case Win(_, p) => ("win", p)
+      case Draw(_) => ("draw", -1)
+    }
+    val jsonBoard = JsArray(for (i <- 0 until 3) yield {
+      JsArray(for (j <- 0 until 3) yield {
+        JsNumber(BigDecimal(state.board.get((i, j)).getOrElse(-1)))
+      })
+    })
+    Json.obj(
+      "kind" -> stateString,
+      "player" -> player,
+      "board" -> jsonBoard
+    )
+  }
+  def move(state: State, idx: Int, mv: Pos) = state.move(idx, mv)
   def initState = Turn(Map.empty, 0)
 }
