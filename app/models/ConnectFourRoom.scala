@@ -40,7 +40,7 @@ object ConnectFourRoom {
     colWin || rowWin || diagWin || diagWin2
   }
 
-  trait State {
+  trait State extends GameState {
     def board: Board
     def move(player: Player, col: Int): Try[State] = this match {
       case turn @ GameStart(board, currentPlayer) => Try {
@@ -56,6 +56,10 @@ object ConnectFourRoom {
         }
       }
       case GameEnd(_, _) => Failure(new Exception("The game is completed."))
+    }
+    override def gameEnd = this match {
+      case GameStart(_, _) => true
+      case _ => false
     }
   }
 

@@ -13,12 +13,23 @@ import utils.generateId
 case class Join(name: Option[String])
 case class Quit(uid: String)
 
+object RoomState extends Enumeration {
+  type RoomState = Value
+  val Playing, Paused, Lobby = Value
+}
+
+trait GameState {
+  /** Returns true if the game has ended. */
+  def gameEnd: Boolean
+}
+
 // todo Switch to an FSM model for this.
 /**
  * The GameRoom actor handles the logic for a single game room.
  * It adds and removes players, creates websockets, starts and stops the game, etc.
  */
-trait GameRoom[State, Mov] extends Actor {
+trait GameRoom[State <: GameState, Mov] extends Actor {
+  import RoomState._
   /* 
    * Internal messages sent from the room's iteratee to itself.
    * Each represents a possible message sent from the client.
@@ -26,6 +37,7 @@ trait GameRoom[State, Mov] extends Actor {
   sealed trait ServerMessage
   case class ChangeRole(uid: String, role: Int) extends ServerMessage
   case class ChangeName(uid: String, name: String) extends ServerMessage
+  case class Restart(uid: String) extends ServerMessage
   case class RequestUpdate(uid: String, data: Set[String]) extends ServerMessage
   case class Move(uid: String, move: Mov) extends ServerMessage
   case class Message(uid: String, text: String) extends ServerMessage
@@ -70,6 +82,7 @@ trait GameRoom[State, Mov] extends Actor {
     case "changename" => data.asOpt[String] map { ChangeName(uid, _) }
     case "move" => parseMove(data) map { Move(uid, _) }
     case "message" => data.asOpt[String] map { Message(uid, _) }
+    case "restart" => Some(Restart(uid))
     case _ => None
   }
 
@@ -89,7 +102,9 @@ trait GameRoom[State, Mov] extends Actor {
 
   def playersByIndex: Map[Int, String] = players map { _.swap }
 
-  var state = initState
+  var state: State = initState
+
+  var roomState: RoomState = Lobby
 
   override def receive = {
     case Join(nameOpt) => {
@@ -105,22 +120,42 @@ trait GameRoom[State, Mov] extends Actor {
         players += (uid -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
         sendAll(jsData("players"))
       }
+
+      // If we have the required number of players, start or resume the game
+      if (players.size == maxPlayers && roomState != Playing) {
+        if (roomState == Lobby) {
+          state = initState
+          sendAll(jsData("gamestate"))
+        }
+        roomState = Playing
+      }
     }
     case Quit(uid) => {
       members -= uid
       players -= uid
       sendAll(jsData("members"))
       sendAll(jsData("players"))
+      if (roomState == Playing && players.size <= maxPlayers) {
+        roomState = Paused
+      }
     }
     case Move(uid, mv) => {
       for (idx <- players.get(uid)) {
-        move(state, idx, mv) match {
-          case Success(newState) => {
-            state = newState
-            sendAll(jsData("gamestate"))
+        if (roomState != Playing) {
+          members(uid).push(jsMessage(s"The game hasn't started yet!"))
+        } else {
+          move(state, idx, mv) match {
+            case Success(newState) => {
+              state = newState
+              sendAll(jsData("gamestate"))
+              // Move back to our lobby if necessary.
+              if (state.gameEnd) {
+                roomState = Lobby
+              }
+            }
+            case Failure(e) =>
+              members(uid).push(jsMessage(s"You've made a bad move: $e"))
           }
-          case Failure(e) =>
-            members(uid).push(jsMessage(s"You've made a bad move: $e"))
         }
       }
     }
@@ -129,15 +164,19 @@ trait GameRoom[State, Mov] extends Actor {
     }
     case ChangeRole(uid, role) => {
       members.get(uid) map { channel =>
-        // Remove player if invalid number is given
-        if (role <= 0 || role > maxPlayers) {
-          players -= uid
-          sendAll(jsData("players"))
-        } else if (playersByIndex.contains(role)) {
-          members(uid).push(jsMessage(s"That role is unavailable."))
+        if (roomState == Playing) {
+          members(uid).push(jsMessage(s"Cannot change roles in the middle of a game."))
         } else {
-          players += (uid -> role)
-          sendAll(jsData("players"))
+          // Remove player if invalid number is given
+          if (role <= 0 || role > maxPlayers) {
+            players -= uid
+            sendAll(jsData("players"))
+          } else if (playersByIndex.contains(role)) {
+            members(uid).push(jsMessage(s"That role is unavailable."))
+          } else {
+            players += (uid -> role)
+            sendAll(jsData("players"))
+          }
         }
       }
     }
@@ -152,6 +191,23 @@ trait GameRoom[State, Mov] extends Actor {
     case RequestUpdate(uid, data) => {
       for (kind <- data) {
         members(uid).push(jsData(kind))
+      }
+    }
+    case Restart(uid) => {
+      members.get(uid) map { channel =>
+        // Can only start the game from the lobby
+        if (roomState == Lobby) {
+          if (players.size == maxPlayers) {
+            state = initState
+            roomState = Playing
+            sendAll(jsData("gamestate"))
+          }
+          else {
+            channel.push(jsMessage("Not enough players to start the game."))
+          }
+        } else {
+          channel.push(jsMessage("Can't restart while still playing."))
+        }
       }
     }
   }
