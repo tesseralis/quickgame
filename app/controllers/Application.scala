@@ -1,29 +1,19 @@
 package controllers
 
-import scala.util._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import akka.actor._
+import play.api.mvc.{Controller, WebSocket, Action}
+import play.api.libs.json.JsValue
 
-import play.api._
-import play.api.Play.current
-import play.api.mvc._
-import play.api.libs.iteratee._
-import play.api.libs.json._
-import play.api.libs.concurrent._
-import play.api.mvc.BodyParsers._
-
-import models._
-import utils._
+import models.GameManager
+import utils.GameType
 
 object Application extends Controller {
 
-  val gameManager: GameManager = TypedActor(Akka.system).typedActorOf(
-    TypedProps[GameManagerImpl]()
-  )
+  val gameManager = GameManager()
   
   def index = Action {
-    Ok(views.html.index("Your new application is ready."))
+    Ok(views.html.index())
   }
 
   def gameIndex(g: GameType) = Action {
@@ -38,11 +28,12 @@ object Application extends Controller {
     }
   }
 
+  // TODO Move the username out of the request parameter, cause that's just weird
   def game(g: GameType, id: String, username: Option[String]) = Action { implicit request =>
     Async {
       gameManager.contains(g, id) map { gameFound =>
         if (gameFound) {
-          val username1 = username getOrElse Random.alphanumeric.take(10).mkString
+          val username1 = username getOrElse scala.util.Random.alphanumeric.take(10).mkString
           Ok(g.view(id, username1, request))
         } else {
           NotFound(s"Could not find $g game #$id")

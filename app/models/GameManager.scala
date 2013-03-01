@@ -21,6 +21,10 @@ import utils.GameType
 
 
 object GameManager {
+
+  /** Return the default game manager implemenation, an Akka typed actor. */
+  def apply(): GameManager = TypedActor(Akka.system).typedActorOf(TypedProps[GameManagerImpl]())
+
   /** Create a new random ID string. */
   def generateId(isNew: String => Boolean): String = {
     val id = Random.alphanumeric.take(5).mkString
