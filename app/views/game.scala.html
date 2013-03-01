@@ -1,8 +1,9 @@
 @(g: GameType, id: String)(content: Html)(implicit request: RequestHeader)
 
 @main(g.toString) {
-  <script>
-    var wsURL = '@routes.Application.socket(g, id, None).webSocketURL()'
-  </script>
+	<script>
+		var wsURL = '@routes.Application.socket(g, id, None).webSocketURL()'
+	</script>
+	<script src='@routes.Assets.at("javascripts/qgsocket.js")'></script>
 	@content
 }

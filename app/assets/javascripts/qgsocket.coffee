@@ -3,14 +3,16 @@ class window.QGSocket
 		@socket = new WebSocket(wsURL)
 		@socket.onopen = (evnt) ->
 			onOpen evnt
-		@socket.onmessage = (msg) ->
+		@fns = {}
+		@socket.onmessage = (msg) =>
 			data = $.parseJSON msg.data
-			fn = window[data.kind]
-			if fn
+			if fn = @fns[data.kind]
 				fn data.data
 			else
-				console.warn "window.#{ data.kind } is not defined."
-			
+				console.warn "Socket events for '#{ data.kind }' has not been defined."	
 
 	send: (dataMap) =>
 		@socket.send JSON.stringify dataMap
+
+	bind: (name, fn) =>
+		@fns[name] = fn

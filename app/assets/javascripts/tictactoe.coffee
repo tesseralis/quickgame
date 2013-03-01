@@ -14,6 +14,10 @@ $(document).ready ->
   socket = new QGSocket(wsURL, () ->
     socket.send {kind: 'update', data: ['members', 'players', 'gamestate']}
     )
+  
+  socket.bind "gamestate", (data) ->
+    renderBoard data.board
+
 
   # Send a turn through the socket
   sendTurn = (row, col) ->
@@ -28,9 +32,6 @@ $(document).ready ->
         else ""
       tile.addClass(style)
 
-  # Socket message callback
-  window.gamestate = (data) ->
-    renderBoard data.board
 
   reset = () ->
     top = $('#ttcontainer').position().top
