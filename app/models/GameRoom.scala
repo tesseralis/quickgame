@@ -11,7 +11,7 @@ import utils.generateId
 
 // Classes to handle the room state
 case class Join(name: Option[String])
-case class Quit(username: String)
+case class Quit(uid: String)
 
 // todo Switch to an FSM model for this.
 /**
@@ -24,9 +24,9 @@ trait GameRoom[State, Mov] extends Actor {
    * Each represents a possible message sent from the client.
    */
   sealed trait ServerMessage
-  case class ChangeRole(username: String, role: Int) extends ServerMessage
-  case class RequestUpdate(username: String, data: Set[String]) extends ServerMessage
-  case class Move(user: String, move: Mov) extends ServerMessage
+  case class ChangeRole(uid: String, role: Int) extends ServerMessage
+  case class RequestUpdate(uid: String, data: Set[String]) extends ServerMessage
+  case class Move(uid: String, move: Mov) extends ServerMessage
 
   // The number of players needed to play the game
   def maxPlayers: Int
@@ -62,19 +62,20 @@ trait GameRoom[State, Mov] extends Actor {
     }
   }
 
-  def serverMessage(id: String, kind: String, data: JsValue): Option[ServerMessage] = kind match {
-    case "update" => data.asOpt[Array[String]] map { x => RequestUpdate(id, x.toSet) }
-    case "changerole" => data.asOpt[Int] map { ChangeRole(id, _) }
-    case "move" => parseMove(data) map { Move(id, _) }
+  def serverMessage(uid: String, kind: String, data: JsValue): Option[ServerMessage] = kind match {
+    case "update" => data.asOpt[Array[String]] map { x => RequestUpdate(uid, x.toSet) }
+    case "changerole" => data.asOpt[Int] map { ChangeRole(uid, _) }
+    case "move" => parseMove(data) map { Move(uid, _) }
     case _ => None
   }
 
-  def iteratee(username: String) = Iteratee.foreach[JsValue] { event => 
-    for (kind <- (event\"kind").asOpt[String]; msg <- serverMessage(username, kind, event\"data")) {
+  def iteratee(uid: String) = Iteratee.foreach[JsValue] { event => 
+    for (kind <- (event\"kind").asOpt[String]; msg <- serverMessage(uid, kind, event\"data")) {
       self ! msg
     }
-  } mapDone { _ => self ! Quit(username) }
+  } mapDone { _ => self ! Quit(uid) }
 
+  // todo switch to actor m odel for players
   // a mapping from the members of the room to their message channels.
   var members = Map[String, Concurrent.Channel[JsValue]]()
   // A map of players to their position in the game
@@ -89,54 +90,54 @@ trait GameRoom[State, Mov] extends Actor {
       // todo Store the current username
       import play.api.Logger
       Logger.debug(s"Got a request from $nameOpt")
-      val username = generateId(10, (!members.contains(_)))
+      val uid = generateId(10, (!members.contains(_)))
       val (enumerator, channel) = Concurrent.broadcast[JsValue]
-      members += (username -> channel)
+      members += (uid -> channel)
       sendAll(jsData("members"))
-      sender ! (iteratee(username), enumerator)
+      sender ! (iteratee(uid), enumerator)
       Logger.debug(s"Responded!")
 
       // Make this member a player if there are spots available
       if (players.size < maxPlayers) {
-        players += (username -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
+        players += (uid -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
         sendAll(jsData("players"))
       }
     }
-    case Quit(username) => {
-      members -= username
-      players -= username
+    case Quit(uid) => {
+      members -= uid
+      players -= uid
       sendAll(jsData("members"))
       sendAll(jsData("players"))
     }
-    case Move(username, mv) => {
-      for (idx <- players.get(username)) {
+    case Move(uid, mv) => {
+      for (idx <- players.get(uid)) {
         move(state, idx, mv) match {
           case Success(newState) => {
             state = newState
             sendAll(jsData("gamestate"))
           }
           case Failure(e) =>
-            members(username).push(jsMessage(s"You've made a bad move: $e"))
+            members(uid).push(jsMessage(s"You've made a bad move: $e"))
         }
       }
     }
-    case ChangeRole(username, role) => {
-      members.get(username) map { channel =>
+    case ChangeRole(uid, role) => {
+      members.get(uid) map { channel =>
         // Remove player if invalid number is given
         if (role <= 0 || role > maxPlayers) {
-          players -= username
+          players -= uid
           sendAll(jsData("players"))
         } else if (playersByIndex.contains(role)) {
-          members(username).push(jsMessage(s"That role is unavailable."))
+          members(uid).push(jsMessage(s"That role is unavailable."))
         } else {
-          players += (username -> role)
+          players += (uid -> role)
           sendAll(jsData("players"))
         }
       }
     }
-    case RequestUpdate(username, data) => {
+    case RequestUpdate(uid, data) => {
       for (kind <- data) {
-        members(username).push(jsData(kind))
+        members(uid).push(jsData(kind))
       }
     }
   }
