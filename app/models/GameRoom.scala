@@ -11,6 +11,7 @@ import play.api.libs.iteratee.{Iteratee, Concurrent}
 case class Join(username: String)
 case class Quit(username: String)
 
+// todo Switch to an FSM model for this.
 /**
  * The GameRoom actor handles the logic for a single game room.
  * It adds and removes players, creates websockets, starts and stops the game, etc.
