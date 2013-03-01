@@ -11,12 +11,13 @@ $(document).ready ->
   $(window).resize ->
     reset()
 
-  socket = new WebSocket(wsURL)
+  socket = new QGSocket(wsURL, () ->
+    socket.send {kind: 'update', data: ['members', 'players', 'gamestate']}
+    )
 
   # Send a turn through the socket
   sendTurn = (row, col) ->
-    text = JSON.stringify {kind: 'move', data: {row, col}}
-    socket.send text
+    socket.send {kind: 'move', data: {row, col}}
 
   # Draw the board from the specified board state
   renderBoard = (jsonBoard) ->
@@ -26,21 +27,19 @@ $(document).ready ->
         when 1 then "btn-primary"
         else ""
       tile.addClass(style)
-  # Request the state so we have it initially
-  socket.onopen = (evt) ->
-    socket.send JSON.stringify {kind: 'update', data: ['members', 'players', 'gamestate']}
 
   # Socket message callback
-  socket.onmessage = (msg) ->
-    data = $.parseJSON msg.data
-    switch data.kind
-      when 'gamestate' then renderBoard data.data.board
+  window.gamestate = (data) ->
+    renderBoard data.board
 
   reset = () ->
     top = $('#ttcontainer').position().top
     height = $(window).height() - (top + 10)
     $('#ttcontainer').height(height)
     board.reset()
-  
+
+  window.qgsocketmade = (abc) ->
+    alert(abc)
+
   reset()
 
