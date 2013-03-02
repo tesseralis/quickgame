@@ -49,8 +49,6 @@ trait GameRoom[State, Mov] extends Actor {
   /** Marker on the end of the game. */
   def gameEnd(state: State): Boolean
 
-  def moveMessageFromJson(data: JsValue) = moveFromJson(data) map Move
-
   /* Private state variables (to be replaced with an FSM) */
   /** A list of names of members. */
   private[this] var members = Map[ActorRef, String]()
@@ -69,14 +67,16 @@ trait GameRoom[State, Mov] extends Actor {
   }
 
   /* Additional messages specific to states. */
-  case class Move(move: Mov) extends AbstractMove(move)
-  case class GameState(data: State) extends AbstractGameState(data) {
-    override def dataToJson = stateToJson(gameState)
-    override def kind = "gamestate"
+  object Move extends AbstractMove[Mov] {
+    override def fromJson(data: JsValue) = moveFromJson(data)
+  }
+  object GameState extends AbstractGameState[State] {
+    override def toJson(data: State) = stateToJson(data)
   }
 
+
   /** Send a message to all members */
-  def notifyAll[A](msg: ClientMessage[A]) {
+  def notifyAll[A](msg: JsValue) {
     for (child <- context.children) {
       child ! msg
     }
@@ -85,11 +85,11 @@ trait GameRoom[State, Mov] extends Actor {
   override def receive = {
 
     case Join(name) => {
-      val client = context.actorOf(Props(new Client(moveMessageFromJson _)))
+      val client = context.actorOf(Props(new Client[JsValue]))
       context.watch(client)
 
       // Send the websocket to the sender
-      (client ? RequestWebsocket) pipeTo sender
+      (client ? Client.RequestWebsocket) pipeTo sender
 
       // Assign the name to the member
       members += (client -> name.getOrElse(generateId(10)))
@@ -179,8 +179,7 @@ trait GameRoom[State, Mov] extends Actor {
         notifyAll(Players(playerNames))
       }
     }
-    case RequestUpdate(data) => {
-      // TODO Request specific data...
+    case Update => {
       notifyAll(Members(memberNames))
       notifyAll(Players(playerNames))
       notifyAll(GameState(gameState))

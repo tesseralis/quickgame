@@ -1,25 +1,38 @@
 package models
 
+import scala.reflect.ClassTag
+
 import akka.actor._
 import play.api.libs.json._
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 
-class Client(moveFromJson: JsValue => Option[AbstractMove[_]]) extends Actor {
-  val (enumerator, channel) = Concurrent.broadcast[JsValue]
-  val iteratee = Iteratee.foreach[JsValue] { json =>
-    ServerMessage.fromJson(json)(moveFromJson).foreach { msg =>
-      context.parent ! msg
-    }
+object Client {
+  /** Object to send to poll the client for its websocket connection. */
+  case object RequestWebsocket
+}
+
+/**
+ * Actor representing a WebSocket client.
+ * Simply passes sent messages to the websocket and
+ * returns incoming messages to its parent.
+ */
+class Client[A : ClassTag] extends Actor {
+  import Client._
+
+  /** The channel is the input stream into the websocket.
+   * Pass the enumerator out to allow sending messages from
+   * the client. 
+   */
+  val (enumerator, channel) = Concurrent.broadcast[A]
+
+  /** This socket just sends all messages to its parent. */
+  val iteratee = Iteratee.foreach[A] { json =>
+    context.parent ! json
   } mapDone { _ => context.stop(self) }
 
   override def receive = {
-    // Pass the websocket up
-    case RequestWebsocket =>
-      sender ! (iteratee, enumerator)
-
-    case msg: ClientMessage[_] =>
-      channel.push(msg.toJson)
+    case msg: A => channel.push(msg)
+    case RequestWebsocket => sender ! (iteratee, enumerator)
   }
 }
 
-case object RequestWebsocket
