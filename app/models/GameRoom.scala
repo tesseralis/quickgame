@@ -179,8 +179,7 @@ trait GameRoom[State, Mov] extends Actor {
         notifyAll(Players(playerNames))
       }
     }
-    case RequestUpdate(data) => {
-      // TODO Request specific data...
+    case Update => {
       notifyAll(Members(memberNames))
       notifyAll(Players(playerNames))
       notifyAll(GameState(gameState))

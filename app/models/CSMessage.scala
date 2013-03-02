@@ -31,7 +31,7 @@ object Restart extends CSMessage[Unit] {
   override def kind = "restart"
   override def fromJson(data: JsValue) = Some(Unit)
 }
-object RequestUpdate extends CSMessage[Unit] {
+object Update extends CSMessage[Unit] {
   override def kind = "update"
   override def fromJson(data: JsValue) = Some(Unit)
 }
