@@ -58,8 +58,8 @@ object ConnectFourRoom {
       case GameEnd(_, _) => Failure(new Exception("The game is completed."))
     }
     def gameEnd = this match {
-      case GameStart(_, _) => true
-      case _ => false
+      case GameStart(_, _) => false
+      case _ => true
     }
   }
 
