@@ -10,7 +10,7 @@ import utils.GameType
 
 object Application extends Controller {
 
-  val gameManager = GameManager()
+  val gameManager = GameManager(Games.values)
   
   def index = Action {
     Ok(views.html.index())
