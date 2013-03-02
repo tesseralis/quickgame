@@ -14,10 +14,12 @@ class Client(moveFromJson: JsValue => Option[AbstractMove[_]]) extends Actor {
 
   override def receive = {
     // Pass the websocket up
-    case Join(name) =>
+    case RequestWebsocket =>
       sender ! (iteratee, enumerator)
 
     case msg: ClientMessage[_] =>
       channel.push(msg.toJson)
   }
 }
+
+case object RequestWebsocket

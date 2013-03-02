@@ -51,7 +51,7 @@ trait GameRoom[State, Mov] extends Actor {
 
   def moveMessageFromJson(data: JsValue) = moveFromJson(data) map Move
 
-  /* Private state variables (to be replaced with an FSM */
+  /* Private state variables (to be replaced with an FSM) */
   /** A list of names of members. */
   private[this] var members = Map[ActorRef, String]()
   /** A list of current players. */
@@ -84,13 +84,12 @@ trait GameRoom[State, Mov] extends Actor {
 
   override def receive = {
 
-    case msg @ Join(name) => {
-      // Constructor?
+    case Join(name) => {
       val client = context.actorOf(Props(new Client(moveMessageFromJson _)))
       context.watch(client)
 
       // Send the websocket to the sender
-      (client ? msg) pipeTo sender
+      (client ? RequestWebsocket) pipeTo sender
 
       // Assign the name to the member
       members += (client -> name.getOrElse(generateId(10)))
