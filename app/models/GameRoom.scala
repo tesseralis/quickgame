@@ -70,13 +70,12 @@ trait GameRoom[State, Mov] extends Actor {
 
   /* Additional messages specific to states. */
   case class Move(move: Mov) extends AbstractMove(move)
-  case class GameState(data: State) extends AbstractGameState(data) {
-    override def dataToJson = stateToJson(gameState)
-    override def kind = "gamestate"
+  object GameState extends AbstractGameState[State] {
+    override def toJson(data: State) = stateToJson(data)
   }
 
   /** Send a message to all members */
-  def notifyAll[A](msg: ClientMessage[A]) {
+  def notifyAll[A](msg: JsValue) {
     for (child <- context.children) {
       child ! msg
     }

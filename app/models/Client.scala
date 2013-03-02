@@ -17,8 +17,8 @@ class Client(moveFromJson: JsValue => Option[AbstractMove[_]]) extends Actor {
     case RequestWebsocket =>
       sender ! (iteratee, enumerator)
 
-    case msg: ClientMessage[_] =>
-      channel.push(msg.toJson)
+    case msg: JsValue => 
+      channel.push(msg)
   }
 }
 
