@@ -14,7 +14,9 @@ import play.api.libs.concurrent.Execution.Implicits._
 import utils.generateId
 
 // Classes to handle the room state
-case class Join(name: Option[String])
+object GameRoom {
+  case class Join(name: Option[String])
+}
 
 object RoomState extends Enumeration {
   type RoomState = Value
@@ -23,6 +25,7 @@ object RoomState extends Enumeration {
 
 trait GameRoom[State, Mov] extends Actor {
   import RoomState._
+  import GameRoom._
 
   implicit val timeout = Timeout(10.seconds)
 
