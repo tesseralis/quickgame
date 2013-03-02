@@ -15,49 +15,10 @@ import utils.generateId
 
 // Classes to handle the room state
 case class Join(name: Option[String])
-case class Quit(uid: String)
 
 object RoomState extends Enumeration {
   type RoomState = Value
   val Playing, Paused, Lobby = Value
-}
-
-/**
- * Message representation of a message from the client to the server.
- */
-sealed trait ServerMessage
-case class ChangeRole(role: Int) extends ServerMessage
-case class ChangeName(name: String) extends ServerMessage
-case object Restart extends ServerMessage
-case class RequestUpdate(data: Set[String]) extends ServerMessage
-case class Chat(text: String) extends ServerMessage
-
-
-/**
- * Message representation of a message sent from the server to the client.
- */
-sealed trait ClientMessage[A] {
-  def data: A
-  def dataToJson: JsValue
-  def kind: String
-  
-  def toJson: JsValue = Json.obj(
-    "kind" -> JsString(kind),
-    "data" -> dataToJson
-  )
-}
-
-case class Members(data: Seq[String]) extends ClientMessage[Seq[String]] {
-  override def dataToJson = JsArray(data.map(JsString))
-  override def kind = "members"
-}
-case class Players(data: Seq[String]) extends ClientMessage[Seq[String]] {
-  override def dataToJson = JsArray(data.map(JsString))
-  override def kind = "players"
-}
-case class Message(data: String) extends ClientMessage[String] {
-  override def dataToJson = JsString(data)
-  override def kind = "message"
 }
 
 class Client(messageFromJson: (String, JsValue) => Option[ServerMessage]) extends Actor {
@@ -134,8 +95,8 @@ trait GameRoom[State, Mov] extends Actor {
   }
 
   /* Additional messages specific to states. */
-  case class Move(move: Mov) extends ServerMessage
-  case class GameState(data: State) extends ClientMessage[State] {
+  case class Move(move: Mov) extends AbstractMove(move)
+  case class GameState(data: State) extends AbstractGameState(data) {
     override def dataToJson = stateToJson(gameState)
     override def kind = "gamestate"
   }
