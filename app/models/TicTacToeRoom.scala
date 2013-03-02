@@ -24,7 +24,7 @@ object TicTacToeRoom {
       (0 until 3).forall(k => defaultBoard(k, 2-k) == player)
   }
 
-  trait State extends GameState {
+  trait State {
     def board: Board
     def move(player: Player, pos: Pos): Try[State] = this match {
       case turn @ Turn(board, currentPlayer) => Try {
@@ -42,7 +42,7 @@ object TicTacToeRoom {
       }
       case _ => Failure(new Exception("The game is completed."))
     }
-    override def gameEnd = this match {
+    def gameEnd = this match {
       case Turn(_, _) => false
       case _ => true
     }
@@ -56,12 +56,12 @@ object TicTacToeRoom {
 import TicTacToeRoom._
 
 class TicTacToeRoom extends GameRoom[State, Pos] {
-  def maxPlayers = 2
-  def parseMove(data: JsValue) = for {
+  override def maxPlayers = 2
+  override def moveFromJson(data: JsValue) = for {
     row <- (data\"row").asOpt[Int]
     col <- (data\"col").asOpt[Int]
   } yield (row, col)
-  def encodeState(input: State) = {
+  override def stateToJson(state: State) = {
     val (stateString, player) = state match {
       case Turn(_, p) => ("turn", p)
       case Win(_, p) => ("win", p)
@@ -78,6 +78,7 @@ class TicTacToeRoom extends GameRoom[State, Pos] {
       "board" -> jsonBoard
     )
   }
-  def move(state: State, idx: Int, mv: Pos) = state.move(idx, mv)
-  def initState = Turn(Map.empty, 0)
+  override def move(state: State, idx: Int, mv: Pos) = state.move(idx, mv)
+  override def initState = Turn(Map.empty, 0)
+  override def gameEnd(state: State) = state.gameEnd
 }
