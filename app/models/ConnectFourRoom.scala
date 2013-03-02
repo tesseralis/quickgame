@@ -73,7 +73,7 @@ import ConnectFourRoom._
 class ConnectFourRoom extends GameRoom[State, Int] {
   override def maxPlayers = 2
   override def moveFromJson(data: JsValue) = data.asOpt[Int]
-  override def stateToJson(input: State) = {
+  override def stateToJson(state: State) = {
     val (stateString, player) = state match {
       case GameStart(_, p) => ("gamestart", p)
       case GameEnd(_, p) => ("gameend", p)

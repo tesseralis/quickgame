@@ -61,7 +61,7 @@ class TicTacToeRoom extends GameRoom[State, Pos] {
     row <- (data\"row").asOpt[Int]
     col <- (data\"col").asOpt[Int]
   } yield (row, col)
-  override def stateToJson(input: State) = {
+  override def stateToJson(state: State) = {
     val (stateString, player) = state match {
       case Turn(_, p) => ("turn", p)
       case Win(_, p) => ("win", p)
