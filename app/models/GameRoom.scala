@@ -21,8 +21,6 @@ object RoomState extends Enumeration {
   val Playing, Paused, Lobby = Value
 }
 
-class GameClient extends Client[JsValue]
-
 trait GameRoom[State, Mov] extends Actor {
   import RoomState._
 
@@ -87,11 +85,11 @@ trait GameRoom[State, Mov] extends Actor {
   override def receive = {
 
     case Join(name) => {
-      val client = context.actorOf(Props[GameClient])
+      val client = context.actorOf(Props(new Client[JsValue]))
       context.watch(client)
 
       // Send the websocket to the sender
-      (client ? RequestWebsocket) pipeTo sender
+      (client ? Client.RequestWebsocket) pipeTo sender
 
       // Assign the name to the member
       members += (client -> name.getOrElse(generateId(10)))
