@@ -21,6 +21,8 @@ object RoomState extends Enumeration {
   val Playing, Paused, Lobby = Value
 }
 
+class GameClient extends Client[JsValue]
+
 trait GameRoom[State, Mov] extends Actor {
   import RoomState._
 
@@ -49,8 +51,6 @@ trait GameRoom[State, Mov] extends Actor {
   /** Marker on the end of the game. */
   def gameEnd(state: State): Boolean
 
-  def moveMessageFromJson(data: JsValue) = moveFromJson(data) map Move
-
   /* Private state variables (to be replaced with an FSM) */
   /** A list of names of members. */
   private[this] var members = Map[ActorRef, String]()
@@ -69,10 +69,13 @@ trait GameRoom[State, Mov] extends Actor {
   }
 
   /* Additional messages specific to states. */
-  case class Move(move: Mov) extends AbstractMove(move)
+  object Move extends AbstractMove[Mov] {
+    override def fromJson(data: JsValue) = moveFromJson(data)
+  }
   object GameState extends AbstractGameState[State] {
     override def toJson(data: State) = stateToJson(data)
   }
+
 
   /** Send a message to all members */
   def notifyAll[A](msg: JsValue) {
@@ -84,7 +87,7 @@ trait GameRoom[State, Mov] extends Actor {
   override def receive = {
 
     case Join(name) => {
-      val client = context.actorOf(Props(new Client(moveMessageFromJson _)))
+      val client = context.actorOf(Props[GameClient])
       context.watch(client)
 
       // Send the websocket to the sender

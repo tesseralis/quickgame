@@ -1,15 +1,15 @@
 package models
 
+import scala.reflect.ClassTag
+
 import akka.actor._
 import play.api.libs.json._
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 
-class Client(moveFromJson: JsValue => Option[AbstractMove[_]]) extends Actor {
-  val (enumerator, channel) = Concurrent.broadcast[JsValue]
-  val iteratee = Iteratee.foreach[JsValue] { json =>
-    ServerMessage.fromJson(json)(moveFromJson).foreach { msg =>
-      context.parent ! msg
-    }
+class Client[A : ClassTag] extends Actor {
+  val (enumerator, channel) = Concurrent.broadcast[A]
+  val iteratee = Iteratee.foreach[A] { json =>
+    context.parent ! json
   } mapDone { _ => context.stop(self) }
 
   override def receive = {
@@ -17,7 +17,7 @@ class Client(moveFromJson: JsValue => Option[AbstractMove[_]]) extends Actor {
     case RequestWebsocket =>
       sender ! (iteratee, enumerator)
 
-    case msg: JsValue => 
+    case msg: A => 
       channel.push(msg)
   }
 }
