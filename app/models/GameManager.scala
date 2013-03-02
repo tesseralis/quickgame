@@ -5,33 +5,21 @@ import scala.concurrent.duration._
 
 import akka.actor._
 import akka.util.Timeout
-import akka.pattern.{ask, pipe}
+import akka.pattern.ask
 
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.concurrent.Akka
-// todo Learn more about execution contexts.
 import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
-import utils.{GameType, WebSocket, generateId}
+import utils.{GameType, WebSocket}
 
 
 object GameManager {
 
   /** Return the default game manager implemenation, an Akka typed actor. */
   def apply(): GameManager = TypedActor(Akka.system).typedActorOf(TypedProps[GameManagerImpl]())
-
-
-  /** Returns a websocket demonstrating that you've found an error. */
-  // todo Move to utils?
-  def errorWebSocket[A](error: A): WebSocket[A] = {
-    import play.api.libs.iteratee._
-    val iteratee = Done[A, Unit]((), Input.EOF)
-    val enumerator = Enumerator[A](error).andThen(Enumerator.enumInput(Input.EOF))
-
-    (iteratee, enumerator)
-  }
 }
 
 trait GameManager {
@@ -78,26 +66,3 @@ class GameManagerImpl extends GameManager with TypedActor.PreStart {
   }
 }
 
-object RoomManager {
-  case object Create
-  case class Contains(id: String)
-  case class Join(id: String, name: Option[String])
-}
-
-class RoomManager(g: GameType) extends Actor {
-  implicit val timeout = Timeout(10.seconds)
-  import RoomManager._
-  override def receive = {
-    case Create =>
-      val id = generateId(5, id => context.child(id).isEmpty)
-      context.actorOf(g.props, id)
-      sender ! id
-
-    case Contains(id) =>
-      sender ! (!context.child(id).isEmpty)
-    case Join(id: String, name: Option[String]) =>
-      context.child(id).foreach { room =>
-        (room ? GameRoom.Join(name)) pipeTo sender
-      }
-  }
-}

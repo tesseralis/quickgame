@@ -1,0 +1,44 @@
+package models
+
+import scala.concurrent.duration._
+
+import akka.actor.Actor
+import akka.util.Timeout
+import akka.pattern.{ask, pipe}
+
+import play.api.libs.concurrent.Execution.Implicits._
+
+import utils._
+
+object RoomManager {
+  /** Tell the manager to create a room. */
+  case object Create
+  /** Ask the manager if a given room exists. */
+  case class Contains(id: String)
+  /** Ask the manager to join the given room, with a given username. */
+  case class Join(id: String, name: Option[String])
+}
+
+/**
+ * Manages the all the rooms of a given game type.
+ */
+class RoomManager(g: GameType) extends Actor {
+  import RoomManager._
+
+  implicit val timeout = Timeout(10.seconds)
+
+  override def receive = {
+    case Create =>
+      val id = generateId(5, id => context.child(id).isEmpty)
+      context.actorOf(g.props, id)
+      sender ! id
+
+    case Contains(id) =>
+      sender ! (!context.child(id).isEmpty)
+
+    case Join(id: String, name: Option[String]) =>
+      context.child(id).foreach { room =>
+        (room ? GameRoom.Join(name)) pipeTo sender
+      }
+  }
+}
