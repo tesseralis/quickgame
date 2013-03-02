@@ -4,10 +4,10 @@ import akka.actor._
 import play.api.libs.json._
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 
-class Client(messageFromJson: (String, JsValue) => Option[ServerMessage]) extends Actor {
+class Client(moveFromJson: JsValue => Option[AbstractMove[_]]) extends Actor {
   val (enumerator, channel) = Concurrent.broadcast[JsValue]
   val iteratee = Iteratee.foreach[JsValue] { json =>
-    for (kind <- (json\"kind").asOpt[String]; msg <- messageFromJson(kind, json\"data")) {
+    ServerMessage.fromJson(json)(moveFromJson).foreach { msg =>
       context.parent ! msg
     }
   } mapDone { _ => context.stop(self) }
