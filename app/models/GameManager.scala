@@ -3,9 +3,9 @@ package models
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-import akka.actor.{ActorRef, TypedActor, TypedProps}
+import akka.actor._
 import akka.util.Timeout
-import akka.pattern.ask
+import akka.pattern.{ask, pipe}
 
 import play.api.libs.json.{JsValue, Json}
 import play.api.libs.concurrent.Akka
@@ -49,32 +49,55 @@ trait GameManager {
   def join(g: GameType, id: String, name: Option[String]): Future[WebSocket[JsValue]]
 }
 
-// todo Should we make a RoomManager class to manage the rooms for each specific game?
-// This will allow us to have matching akka and websocket paths
-class GameManagerImpl extends GameManager {
+class GameManagerImpl extends GameManager with TypedActor.PreStart {
   import GameManager._
 
   implicit val timeout = Timeout(10.seconds)
 
   val ctx = TypedActor.context
 
-  // todo Can we use ctx.actorFor instead?
-  // Right now I don't know how to differentiate between a legit room and a deadletter
-  var games: Map[(GameType, String), ActorRef] = Map.empty
+  var managers: Map[GameType, ActorRef] = Map.empty
 
-  override def create(g: GameType) = Future {
-    val id = generateId(5, id => !games.contains((g, id)))
-    games += ((g, id) -> ctx.actorOf(g.props))
-    id
+  override def preStart() {
+    // Create managers for every type of game available
+    for (g <- controllers.Games.values) {
+      managers += (g -> ctx.actorOf(Props(new RoomManager(g)), name=g.toString))
+    }
   }
 
-  override def contains(g: GameType, id: String) = Future { games.contains((g, id)) }
+  override def create(g: GameType) = {
+    (managers(g) ? RoomManager.Create).mapTo[String]
+  }
+
+  override def contains(g: GameType, id: String) = {
+    (managers(g) ? RoomManager.Contains(id)).mapTo[Boolean]
+  }
 
   override def join(g: GameType, id: String, name: Option[String]) = {
-    games.get((g, id)) map { room =>
-      (room ? Join(name)).mapTo[WebSocket[JsValue]]
-    } getOrElse {
-      Future(errorWebSocket[JsValue](Json.obj("error" -> s"Room $g/$id does not exist.")))
-    }
+    (managers(g) ? RoomManager.Join(id, name)).mapTo[WebSocket[JsValue]]
+  }
+}
+
+object RoomManager {
+  case object Create
+  case class Contains(id: String)
+  case class Join(id: String, name: Option[String])
+}
+
+class RoomManager(g: GameType) extends Actor {
+  implicit val timeout = Timeout(10.seconds)
+  import RoomManager._
+  override def receive = {
+    case Create =>
+      val id = generateId(5, id => context.child(id).isEmpty)
+      context.actorOf(g.props, id)
+      sender ! id
+
+    case Contains(id) =>
+      sender ! (!context.child(id).isEmpty)
+    case Join(id: String, name: Option[String]) =>
+      context.child(id).foreach { room =>
+        (room ? GameRoom.Join(name)) pipeTo sender
+      }
   }
 }
