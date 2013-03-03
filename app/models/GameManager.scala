@@ -8,21 +8,25 @@ import akka.util.Timeout
 import akka.pattern.ask
 
 import play.api.libs.json.JsValue
+import play.api.libs.iteratee.{Iteratee, Enumerator}
 import play.api.libs.concurrent.Akka
 import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
-import utils.{GameType, WebSocket}
+import utils.GameType
 
 
 object GameManager {
+  type WebSocket[A] = (Iteratee[A, _], Enumerator[A])
 
   /** Return the default game manager implemenation, an Akka typed actor. */
   def apply(types: Iterable[GameType]): GameManager =
     TypedActor(Akka.system).typedActorOf(TypedProps(classOf[GameManager],
       new GameManagerImpl(types)), "g")
 }
+
+import GameManager._
 
 trait GameManager {
 
@@ -40,7 +44,6 @@ trait GameManager {
 }
 
 class GameManagerImpl(games: Iterable[GameType]) extends GameManager {
-  import GameManager._
 
   implicit val timeout = Timeout(10.seconds)
 
