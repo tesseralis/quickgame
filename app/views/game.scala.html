@@ -5,5 +5,19 @@
 		var wsURL = '@routes.Application.socket(g, id, None).webSocketURL()'
 	</script>
 	<script src='@routes.Assets.at("javascripts/qgsocket.js")'></script>
-	@content
+	<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/sidebar.css")">
+	<div class="container-fluid">
+		<div class="row-fluid">
+			<div class="span3">
+				<div id="messagePanel">
+					<div id="messageText"></div>
+				</div>
+				<input id="messageInput" type="text">
+			</div>
+			<div class="span9">
+				@content
+			</div>
+		</div>
+	</div>
+	<script src="@routes.Assets.at("javascripts/sidebar.js")"></script>
 }

@@ -10,10 +10,6 @@ $(document).ready ->
 
   $(window).resize ->
     reset()
-
-  socket = new QGSocket(wsURL, () ->
-    socket.send {kind: 'update', data: ['members', 'players', 'gamestate']}
-    )
   
   socket.bind "gamestate", (data) ->
     renderBoard data.board

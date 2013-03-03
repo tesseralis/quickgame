@@ -16,3 +16,8 @@ class window.QGSocket
 
 	bind: (name, fn) =>
 		@fns[name] = fn
+
+$(document).ready ->
+	window.socket = new QGSocket(wsURL, () ->
+		socket.send {kind: 'update', data: ['members', 'players', 'gamestate']}
+		)
