@@ -18,17 +18,17 @@ import utils.GameType
 
 
 object GameManager {
-  type WebSocket[A] = (Iteratee[A, _], Enumerator[A])
-
-  /** Return the default game manager implemenation, an Akka typed actor. */
+  /**
+   * Return the default game manager implemenation, an Akka typed actor.
+   * @param types The game types available for this manager.
+   */
   def apply(types: Iterable[GameType]): GameManager =
     TypedActor(Akka.system).typedActorOf(TypedProps(classOf[GameManager],
       new GameManagerImpl(types)), "g")
 }
 
-import GameManager._
-
 trait GameManager {
+  type WebSocket[A] = (Iteratee[A, _], Enumerator[A])
 
   /** Create a new game of the specified type. */
   def create(g: GameType): Future[String]
