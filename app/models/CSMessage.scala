@@ -36,7 +36,7 @@ object Update extends CSMessage[Unit] {
   override def fromJson(data: JsValue) = Some(Unit)
 }
 object Chat extends CSMessage[String] {
-  override def kind = "update"
+  override def kind = "chat"
   override def fromJson(data: JsValue) = data.asOpt[String]
 }
 abstract class AbstractMove[M] extends CSMessage[M] {

@@ -20,7 +20,7 @@ $(document).ready ->
     if e.which == 13
       message = input.val()
       if message.length > 0
-        socket.send {kind: "message", data: message}
+        socket.send {kind: "chat", data: message}
         input.val("")
 
   resize()
