@@ -25,7 +25,7 @@ Below lists all currently supported message types, in the form [KIND]: [DATA]
   Sent by the client to request a move.
 * restart: No data.
   Request that the game be restarted.
-* message: String chat message from the client.
+* chat: String chat message from the client.
 
 ## TODO
 ### Important
