@@ -8,7 +8,7 @@ import akka.pattern.{ask, pipe}
 
 import play.api.libs.concurrent.Execution.Implicits._
 
-import utils._
+import utils.GameType
 
 object RoomManager {
   /** Tell the manager to create a room. */
@@ -17,6 +17,13 @@ object RoomManager {
   case class Contains(id: String)
   /** Ask the manager to join the given room, with a given username. */
   case class Join(id: String, name: Option[String])
+
+  /** Create a new random ID string, in the style of collabedit's IDs. */
+  @scala.annotation.tailrec
+  def generateId(length: Int, isNew: String => Boolean = _ => true): String = {
+    val id = scala.util.Random.alphanumeric.take(length).mkString.toLowerCase
+    if (isNew(id)) id else generateId(length, isNew)
+  }
 }
 
 /**

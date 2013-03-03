@@ -11,8 +11,6 @@ import play.api.libs.json._
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.concurrent.Execution.Implicits._
 
-import utils.generateId
-
 // Classes to handle the room state
 object GameRoom {
   case class Join(name: Option[String])
@@ -95,7 +93,7 @@ trait GameRoom[State, Mov] extends Actor {
       (client ? Client.RequestWebsocket) pipeTo sender
 
       // Assign the name to the member
-      members += (client -> name.getOrElse(generateId(10)))
+      members += (client -> name.getOrElse("user" + client.path.name))
       notifyAll(Members(memberNames))
 
       // Make a player if spots are available
