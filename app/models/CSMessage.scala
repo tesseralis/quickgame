@@ -6,7 +6,7 @@ import play.api.libs.json.JsValue
  * Trait providing pattern matchers for JSON messages from
  * the client to the server.
  */
-trait CSMessage[A] {
+sealed trait CSMessage[A] {
   protected def fromJson(data: JsValue): Option[A]
   protected def kind: String
 
