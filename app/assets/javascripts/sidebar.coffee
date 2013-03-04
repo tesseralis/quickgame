@@ -45,5 +45,11 @@ $(document).ready ->
         socket.send {kind: "chat", data: message}
         input.val("")
 
+  $('#nameInput').bind 'keypress', (e) ->
+    if e.which == 13
+      message = input.val()
+      if message.length > 0
+        socket.send kind: 'changename', data: message
+
   resize()
   input.focus()
