@@ -42,9 +42,10 @@ object TicTacToeRoom {
       }
       case _ => Failure(new Exception("The game is completed."))
     }
-    def gameEnd = this match {
-      case Turn(_, _) => false
-      case _ => true
+    def winner = this match {
+      case Turn(_, _) => None
+      case Win(_, player) => Some(player)
+      case Draw(_) => Some(-1)
     }
   }
 
@@ -80,5 +81,5 @@ class TicTacToeRoom extends GameRoom[State, Pos] {
   }
   override def move(state: State, idx: Int, mv: Pos) = state.move(idx, mv)
   override def initState = Turn(Map.empty, 0)
-  override def gameEnd(state: State) = state.gameEnd
+  override def winner(state: State) = state.winner
 }
