@@ -131,7 +131,7 @@ trait GameRoom[State, Move] extends Actor {
               gameState = newState
               all ! GameState(newState)
               for (win <- winner(newState)) {
-                all ! Message(if (win >= 0) s"Player $win has won!"
+                all ! Message(if (win >= 0) s"${members(playersByIndex(win))} has won!"
                               else "The game is a draw.")
                 roomState = Lobby
               }
@@ -157,13 +157,13 @@ trait GameRoom[State, Move] extends Actor {
           sender ! Message("You have been removed as a player.")
           all ! Members(memberNames)
         } else if (players.contains(sender) && players(sender) == role) {
-          sender ! Message(s"You are already player $role!")
+          sender ! Message(s"You are already that player!")
         } else if (playersByIndex contains role) {
           sender ! Message("That role is unavailable.")
         } else {
           // Send the role update information.
           players += (sender -> role)
-          sender ! Message(s"You are now player $role")
+          sender ! Message(s"You have changed your role.")
           all ! Members(memberNames)
         }
       }
