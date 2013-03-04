@@ -27,8 +27,12 @@ object ChangeName extends CSMessage[String] {
   override def kind = "changename"
   override def fromJson(data: JsValue) = data.asOpt[String]
 }
-object Restart extends CSMessage[Unit] {
-  override def kind = "restart"
+object Start extends CSMessage[Unit] {
+  override def kind = "start"
+  override def fromJson(data: JsValue) = Some(Unit)
+}
+object Stop extends CSMessage[Unit] {
+  override def kind = "stop"
   override def fromJson(data: JsValue) = Some(Unit)
 }
 object Update extends CSMessage[Unit] {

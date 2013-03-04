@@ -186,19 +186,25 @@ trait GameRoom[State, Move] extends Actor {
       notifyAll(Members(memberNames))
       notifyAll(GameState(gameState))
     }
-    case Restart(x) => {
-      members.get(sender) map { _ =>
-        if (roomState == Lobby) {
-          if (players.size == maxPlayers) {
-            gameState = initState
-            roomState = Playing
-            notifyAll(GameState(gameState))
-          } else {
-            sender ! Message("Not enough players to start the game.")
-          }
+    case Start(x) => {
+      if (roomState != Playing) {
+        if (players.size == maxPlayers) {
+          gameState == initState
+          roomState = Playing
+          notifyAll(GameState(gameState))
         } else {
-          sender ! Message("Can't restart while still playing.")
+          sender ! Message("Not enough players to start/resume the game.")
         }
+      } else {
+        sender ! Message("The game is already playing.")
+      }
+    }
+    case Stop(x) => {
+      if (roomState != Lobby) {
+        roomState = Lobby
+        notifyAll(Message("The game has been cancelled! Boo."))
+      } else {
+        sender ! Message("The game is not playing right now.")
       }
     }
   }
