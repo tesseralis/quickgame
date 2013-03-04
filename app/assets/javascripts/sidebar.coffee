@@ -11,10 +11,11 @@ $(document).ready ->
 
   socket.bind 'members', ({players, others}) ->
     playersDiv.html ''
-    for player, i in players
+    for player, i in players then do (i) ->
       li = $ '<li>'
       li.text player
-      li.click -> socket.send kind: 'changerole', data: i
+      li.click ->
+        socket.send kind: 'changerole', data: i
       playersDiv.append li
 
     othersDiv.html ''

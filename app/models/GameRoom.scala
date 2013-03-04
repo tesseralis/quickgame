@@ -159,15 +159,19 @@ trait GameRoom[State, Move] extends Actor {
       if (roomState == Playing) {
         sender ! Message("Cannot change roles in the middle of a game.")
       } else {
-        if (role <= 0 || role > maxPlayers) {
+        if (role < 0 || role >= maxPlayers) {
           // Remove player if invalid number is given.
           players -= sender
+          sender ! Message("You have been removed as a player.")
           notifyAll(Members(memberNames))
+        } else if (players(sender) == role) {
+          sender ! Message(s"You are already player $role!")
         } else if (playersByIndex contains role) {
           sender ! Message("That role is unavailable.")
         } else {
           // Send the role update information.
           players += (sender -> role)
+          sender ! Message(s"You are now player $role")
           notifyAll(Members(memberNames))
         }
       }
