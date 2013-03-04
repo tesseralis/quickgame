@@ -133,6 +133,7 @@ trait GameRoom[State, Move] extends Actor {
               notifyAll(GameState(newState))
               if (gameEnd(newState)) {
                 roomState = Lobby
+                notifyAll(Message("The game has ended! Yay!"))
               }
             }
             case Failure(e) =>
@@ -182,6 +183,7 @@ trait GameRoom[State, Move] extends Actor {
         if (players.size == maxPlayers) {
           gameState = initState
           roomState = Playing
+          notifyAll(Message("The game has started!"))
           notifyAll(GameState(gameState))
         } else {
           sender ! Message("Not enough players to start/resume the game.")
