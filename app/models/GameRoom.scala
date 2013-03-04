@@ -134,7 +134,7 @@ trait GameRoom[State, Move] extends Actor {
     case GameMove(mv) => {
       players.get(sender) map { idx =>
         if (roomState != Playing) {
-          sender ! Message("The game hasn't started yet!")
+          sender ! Message("The game is not in session.")
         } else {
           move(gameState, idx, mv) match {
             case Success(newState) => {
@@ -145,7 +145,7 @@ trait GameRoom[State, Move] extends Actor {
               }
             }
             case Failure(e) =>
-              sender ! Message(s"You've made a bad move: $e")
+              sender ! Message(e.getMessage)
           }
         }
       }
