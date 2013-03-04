@@ -62,10 +62,11 @@ trait GameRoom[State, Move] extends Actor {
 
   /** Utility functions that transform our stored data. */
   def playersByIndex: Map[Int, ActorRef] = players map { _.swap }
-  def memberNames = members.values.toSeq
+  def otherNames = (members.keys.toSet -- players.keys).map(members(_)).toSeq
   def playerNames = (0 until maxPlayers).map {i => 
     playersByIndex.get(i).map(members).getOrElse("")
   }
+  def memberNames = (playerNames, otherNames)
 
   /* Additional messages specific to states. */
   object GameMove extends AbstractMove[Move] {
@@ -94,13 +95,12 @@ trait GameRoom[State, Move] extends Actor {
 
       // Assign the name to the member
       members += (client -> name.getOrElse("user" + client.path.name))
-      notifyAll(Members(memberNames))
 
       // Make a player if spots are available
       if (players.size < maxPlayers) {
         players += (client -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
-        notifyAll(Players(playerNames))
       }
+      notifyAll(Members(memberNames))
 
       // If we have the required number of players, start or resume the game
       if (players.size == maxPlayers && roomState != Playing) {
@@ -114,16 +114,15 @@ trait GameRoom[State, Move] extends Actor {
 
     case Terminated(client) => {
       members -= client
-      notifyAll(Members(memberNames))
 
       // Pause the game if a player left.
       if (players contains client) {
         players -= client
-        notifyAll(Players(playerNames))
         if (roomState == Playing) {
           roomState = Paused
         }
       }
+      notifyAll(Members(memberNames))
 
       // Destroy this room if all children are gone.
       if (members.size == 0) {
@@ -163,13 +162,13 @@ trait GameRoom[State, Move] extends Actor {
         if (role <= 0 || role > maxPlayers) {
           // Remove player if invalid number is given.
           players -= sender
-          notifyAll(Players(playerNames))
+          notifyAll(Members(memberNames))
         } else if (playersByIndex contains role) {
           sender ! Message("That role is unavailable.")
         } else {
           // Send the role update information.
           players += (sender -> role)
-          notifyAll(Players(playerNames))
+          notifyAll(Members(memberNames))
         }
       }
     }
@@ -177,12 +176,10 @@ trait GameRoom[State, Move] extends Actor {
       members.get(sender) map { _ =>
         members += (sender -> name)
         notifyAll(Members(memberNames))
-        notifyAll(Players(playerNames))
       }
     }
     case Update(x) => {
       notifyAll(Members(memberNames))
-      notifyAll(Players(playerNames))
       notifyAll(GameState(gameState))
     }
     case Restart(x) => {

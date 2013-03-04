@@ -15,17 +15,17 @@ sealed trait SCMessage[A] {
   )
 }
 
-object Members extends SCMessage[Seq[String]] {
-  override def toJson(data: Seq[String]) = JsArray(data.map(JsString))
+object Members extends SCMessage[(Seq[String], Seq[String])] {
   override def kind = "members"
-}
-object Players extends SCMessage[Seq[String]] {
-  override def toJson(data: Seq[String]) = JsArray(data.map(JsString))
-  override def kind = "players"
+  override def toJson(data: (Seq[String], Seq[String])) =
+    Json.obj(
+      "players" -> JsArray(data._1.map(JsString)),
+      "members" -> JsArray(data._2.map(JsString))
+    )
 }
 object Message extends SCMessage[String] {
-  override def toJson(data: String) = JsString(data)
   override def kind = "message"
+  override def toJson(data: String) = JsString(data)
 }
 abstract class AbstractState[S] extends SCMessage[S] {
   final override def kind = "gamestate"
