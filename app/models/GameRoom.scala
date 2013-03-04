@@ -180,12 +180,12 @@ trait GameRoom[State, Mov] extends Actor {
         notifyAll(Players(playerNames))
       }
     }
-    case Update => {
+    case Update(x) => {
       notifyAll(Members(memberNames))
       notifyAll(Players(playerNames))
       notifyAll(GameState(gameState))
     }
-    case Restart => {
+    case Restart(x) => {
       members.get(sender) map { _ =>
         if (roomState == Lobby) {
           if (players.size == maxPlayers) {
