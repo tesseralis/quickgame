@@ -9,6 +9,12 @@ $(document).ready ->
   $(window).resize ->
     resize()
 
+  $('#start').click ->
+    socket.send kind: 'start'
+
+  $('#stop').click ->
+    socket.send kind: 'stop'
+
   socket.bind 'members', ({players, others}) ->
     playersDiv.html ''
     for player, i in players then do (i) ->
