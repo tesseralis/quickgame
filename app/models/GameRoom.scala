@@ -21,7 +21,7 @@ object RoomState extends Enumeration {
   val Playing, Paused, Lobby = Value
 }
 
-trait GameRoom[State, Mov] extends Actor {
+trait GameRoom[State, Move] extends Actor {
   import RoomState._
   import GameRoom._
 
@@ -36,13 +36,13 @@ trait GameRoom[State, Mov] extends Actor {
   def maxPlayers: Int
 
   /** How to convert a move from JSON input. */
-  def moveFromJson(input: JsValue): Option[Mov]
+  def moveFromJson(input: JsValue): Option[Move]
 
   /** How to transform a state into JSON. */
   def stateToJson(input: State): JsValue
 
   /** Move from one action to another. */
-  def move(state: State, idx: Int, mv: Mov): Try[State]
+  def move(state: State, idx: Int, mv: Move): Try[State]
 
   /** Initial state of the game. */
   def initState: State
@@ -68,10 +68,10 @@ trait GameRoom[State, Mov] extends Actor {
   }
 
   /* Additional messages specific to states. */
-  object Move extends AbstractMove[Mov] {
+  object GameMove extends AbstractMove[Move] {
     override def fromJson(data: JsValue) = moveFromJson(data)
   }
-  object GameState extends AbstractGameState[State] {
+  object GameState extends AbstractState[State] {
     override def toJson(data: State) = stateToJson(data)
   }
 
@@ -132,7 +132,7 @@ trait GameRoom[State, Mov] extends Actor {
     }
 
     /* ServerMessages */
-    case Move(mv) => {
+    case GameMove(mv) => {
       players.get(sender) map { idx =>
         if (roomState != Playing) {
           sender ! Message("The game hasn't started yet!")

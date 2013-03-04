@@ -27,6 +27,6 @@ object Message extends SCMessage[String] {
   override def toJson(data: String) = JsString(data)
   override def kind = "message"
 }
-abstract class AbstractGameState[S] extends SCMessage[S] {
+abstract class AbstractState[S] extends SCMessage[S] {
   final override def kind = "gamestate"
 }
