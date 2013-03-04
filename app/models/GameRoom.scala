@@ -76,12 +76,11 @@ trait GameRoom[State, Move] extends Actor {
     override def toJson(data: State) = stateToJson(data)
   }
 
-
-  /** Send a message to all members */
-  def notifyAll[A](msg: JsValue) {
-    for (child <- context.children) {
-      child ! msg
-    }
+  /**
+   * Helper object to send the message to all children.
+   */
+  object all {
+    def !(message: Any) { context.children.foreach(_ ! message) }
   }
 
   override def receive = {
@@ -100,7 +99,7 @@ trait GameRoom[State, Move] extends Actor {
       if (players.size < maxPlayers) {
         players += (client -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
       }
-      notifyAll(Members(memberNames))
+      all ! Members(memberNames)
     }
 
     case Terminated(client) => {
@@ -113,7 +112,7 @@ trait GameRoom[State, Move] extends Actor {
           roomState = Paused
         }
       }
-      notifyAll(Members(memberNames))
+      all ! Members(memberNames)
 
       // Destroy this room if all children are gone.
       if (members.size == 0) {
@@ -130,10 +129,10 @@ trait GameRoom[State, Move] extends Actor {
           move(gameState, idx, mv) match {
             case Success(newState) => {
               gameState = newState
-              notifyAll(GameState(newState))
+              all ! GameState(newState)
               if (gameEnd(newState)) {
                 roomState = Lobby
-                notifyAll(Message("The game has ended! Yay!"))
+                all ! Message("The game has ended.")
               }
             }
             case Failure(e) =>
@@ -144,7 +143,7 @@ trait GameRoom[State, Move] extends Actor {
     }
     case Chat(text) => {
       members.get(sender) map { name =>
-        notifyAll(Message(s"$name: $text"))
+        all ! Message(s"$name: $text")
       }
     }
     case ChangeRole(role) => {
@@ -155,7 +154,7 @@ trait GameRoom[State, Move] extends Actor {
           // Remove player if invalid number is given.
           players -= sender
           sender ! Message("You have been removed as a player.")
-          notifyAll(Members(memberNames))
+          all ! Members(memberNames)
         } else if (players.contains(sender) && players(sender) == role) {
           sender ! Message(s"You are already player $role!")
         } else if (playersByIndex contains role) {
@@ -164,27 +163,27 @@ trait GameRoom[State, Move] extends Actor {
           // Send the role update information.
           players += (sender -> role)
           sender ! Message(s"You are now player $role")
-          notifyAll(Members(memberNames))
+          all ! Members(memberNames)
         }
       }
     }
     case ChangeName(name) => {
       members.get(sender) map { _ =>
         members += (sender -> name)
-        notifyAll(Members(memberNames))
+        all ! Members(memberNames)
       }
     }
     case Update(x) => {
-      notifyAll(Members(memberNames))
-      notifyAll(GameState(gameState))
+      all ! Members(memberNames)
+      all ! GameState(gameState)
     }
     case Start(x) => {
       if (roomState != Playing) {
         if (players.size == maxPlayers) {
           gameState = initState
           roomState = Playing
-          notifyAll(Message("The game has started!"))
-          notifyAll(GameState(gameState))
+          all ! Message("The game has started!")
+          all ! GameState(gameState)
         } else {
           sender ! Message("Not enough players to start/resume the game.")
         }
@@ -195,7 +194,7 @@ trait GameRoom[State, Move] extends Actor {
     case Stop(x) => {
       if (roomState != Lobby) {
         roomState = Lobby
-        notifyAll(Message("The game has been cancelled! Boo."))
+        all ! Message("The game has been cancelled! Boo.")
       } else {
         sender ! Message("The game is not playing right now.")
       }
