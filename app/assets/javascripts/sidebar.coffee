@@ -1,10 +1,12 @@
 $(document).ready ->
-  input = $ '#messageInput'
+  messageInput = $ '#messageInput'
   display = $ '#messagePanel'
   displayText = $ '#messageText'
 
   playersDiv = $ '#players'
   othersDiv = $ '#others'
+
+  nameInput = $ '#nameInput'
 
   $(window).resize ->
     resize()
@@ -34,22 +36,22 @@ $(document).ready ->
 
   resize = () ->
     parent = $("#messageInput").parent()
-    input.width(parent.width())
+    messageInput.width(parent.width())
     display.width(parent.width())
-    display.height(input.position().top-parent.position().top)
+    display.height(messageInput.position().top-parent.position().top)
 
-  input.bind 'keypress', (e) ->
+  messageInput.bind 'keypress', (e) ->
     if e.which == 13
-      message = input.val()
+      message = messageInput.val()
       if message.length > 0
         socket.send {kind: "chat", data: message}
-        input.val("")
+        messageInput.val("")
 
-  $('#nameInput').bind 'keypress', (e) ->
+  nameInput.bind 'keypress', (e) ->
     if e.which == 13
-      message = input.val()
+      message = nameInput.val()
       if message.length > 0
         socket.send kind: 'changename', data: message
 
   resize()
-  input.focus()
+  messageInput.focus()
