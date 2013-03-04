@@ -15,5 +15,5 @@ class ChatRoom extends GameRoom[String, String] {
 
   override def initState = ""
 
-  override def gameEnd(state: String) = false
+  override def winner(state: String) = None
 }

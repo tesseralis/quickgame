@@ -47,8 +47,8 @@ trait GameRoom[State, Move] extends Actor {
   /** Initial state of the game. */
   def initState: State
 
-  /** Marker on the end of the game. */
-  def gameEnd(state: State): Boolean
+  /** Return the name of the winner (-1 if a draw), or None if the game hasn't ended. */
+  def winner(state: State): Option[Int]
 
   /* Private state variables (to be replaced with an FSM) */
   /** A list of names of members. */
@@ -130,9 +130,10 @@ trait GameRoom[State, Move] extends Actor {
             case Success(newState) => {
               gameState = newState
               all ! GameState(newState)
-              if (gameEnd(newState)) {
+              for (win <- winner(newState)) {
+                all ! Message(if (win >= 0) s"Player $win has won!"
+                              else "The game is a draw.")
                 roomState = Lobby
-                all ! Message("The game has ended.")
               }
             }
             case Failure(e) =>

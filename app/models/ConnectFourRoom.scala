@@ -57,9 +57,9 @@ object ConnectFourRoom {
       }
       case GameEnd(_, _) => Failure(new Exception("The game is completed."))
     }
-    def gameEnd = this match {
-      case GameStart(_, _) => false
-      case _ => true
+    def winner = this match {
+      case GameStart(_, _) => None
+      case GameEnd(_, player) => Some(player)
     }
   }
 
@@ -86,5 +86,5 @@ class ConnectFourRoom extends GameRoom[State, Int] {
   }
   override def move(state: State, idx: Int, mv: Int) = state.move(idx, mv)
   override def initState = GameStart((0 until 7) map { _ => List.empty }, 0)
-  override def gameEnd(state: State) = state.gameEnd
+  override def winner(state: State) = state.winner
 }
