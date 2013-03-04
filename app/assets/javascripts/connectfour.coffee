@@ -25,7 +25,7 @@ $(document).ready ->
         when 0 then "btn-success"
         when 1 then "btn-primary"
         else ""
-      tile.addClass(style)
+      tile.removeClass("btn-success btn-primary").addClass(style)
 
   reset = () ->
     top = $('#cfcontainer').position().top
