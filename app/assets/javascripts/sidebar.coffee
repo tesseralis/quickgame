@@ -1,10 +1,26 @@
 $(document).ready ->
-  input = $("#messageInput")
-  display = $("#messagePanel")
-  displayText = $("#messageText")
+  input = $ '#messageInput'
+  display = $ '#messagePanel'
+  displayText = $ '#messageText'
+
+  playersDiv = $ '#players'
+  othersDiv = $ '#others'
 
   $(window).resize ->
     resize()
+
+  socket.bind 'members', ({players, others}) ->
+    playersDiv.html ''
+    for player, i in players then do (i) ->
+      li = $ '<li>'
+      li.text player
+      li.click ->
+        socket.send kind: 'changerole', data: i
+      playersDiv.append li
+
+    othersDiv.html ''
+    for other in others
+      othersDiv.append($("<li>").text other)
 
   socket.bind "message", (data) ->
     displayText.append($("<p>").text data)
