@@ -12,14 +12,16 @@
 				@content
 			</div>
 			<div class="span3">
-        <p>Your name: <input id="nameInput" type="text" value="default"></input></p>
-        <div id="controls">
+        <input id="nameInput" class="input-small" type="text" placeholder="Name"></input>
+        <div id="controls" class="text-center">
           <button id="start" class="btn btn-success">start</button>
           <button id="stop" class="btn btn-danger">stop</button>
         </div>
         <div id="members">
+          <h4>Players</h4>
           <ul id="players"></ul>
-          <ul id="others"></ul>
+          <h4>Others</h4>
+          <p id="others"></p>
         </div>
 				<div id="messagePanel">
 					<div id="messageText"></div>

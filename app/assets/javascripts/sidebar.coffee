@@ -26,9 +26,7 @@ $(document).ready ->
         socket.send kind: 'changerole', data: i
       playersDiv.append li
 
-    othersDiv.html ''
-    for other in others
-      othersDiv.append($("<li>").text other)
+    othersDiv.text others.join ', '
 
   socket.bind "message", (data) ->
     displayText.append($("<p>").text data)
