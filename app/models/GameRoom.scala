@@ -164,7 +164,7 @@ trait GameRoom[State, Move] extends Actor {
           players -= sender
           sender ! Message("You have been removed as a player.")
           notifyAll(Members(memberNames))
-        } else if (players(sender) == role) {
+        } else if (players.contains(sender) && players(sender) == role) {
           sender ! Message(s"You are already player $role!")
         } else if (playersByIndex contains role) {
           sender ! Message("That role is unavailable.")
