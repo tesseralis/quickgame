@@ -101,15 +101,6 @@ trait GameRoom[State, Move] extends Actor {
         players += (client -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
       }
       notifyAll(Members(memberNames))
-
-      // If we have the required number of players, start or resume the game
-      if (players.size == maxPlayers && roomState != Playing) {
-        if (roomState == Lobby) {
-          gameState = initState
-          notifyAll(GameState(gameState))
-        }
-        roomState = Playing
-      }
     }
 
     case Terminated(client) => {
@@ -142,6 +133,7 @@ trait GameRoom[State, Move] extends Actor {
               notifyAll(GameState(newState))
               if (gameEnd(newState)) {
                 roomState = Lobby
+                notifyAll(Message("The game has ended! Yay!"))
               }
             }
             case Failure(e) =>
@@ -189,8 +181,9 @@ trait GameRoom[State, Move] extends Actor {
     case Start(x) => {
       if (roomState != Playing) {
         if (players.size == maxPlayers) {
-          gameState == initState
+          gameState = initState
           roomState = Playing
+          notifyAll(Message("The game has started!"))
           notifyAll(GameState(gameState))
         } else {
           sender ! Message("Not enough players to start/resume the game.")
