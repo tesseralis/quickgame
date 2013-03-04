@@ -20,7 +20,7 @@ object Members extends SCMessage[(Seq[String], Seq[String])] {
   override def toJson(data: (Seq[String], Seq[String])) =
     Json.obj(
       "players" -> JsArray(data._1.map(JsString)),
-      "members" -> JsArray(data._2.map(JsString))
+      "others" -> JsArray(data._2.map(JsString))
     )
 }
 object Message extends SCMessage[String] {

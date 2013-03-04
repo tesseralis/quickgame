@@ -8,7 +8,7 @@ Each message is a JSON object of the form ``{"kind": [KIND], "data": [DATA]}``.
 Below lists all currently supported message types, in the form [KIND]: [DATA]
 
 ### Server-to-client
-* members: A list of players (in order) and a list of other members.
+* members: {players, others}. A list of players (in order) and a list of other members.
 * gamestate: Object encoding of the game state (specific to each game)
 * message: String message from server
 
