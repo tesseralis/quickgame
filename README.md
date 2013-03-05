@@ -27,12 +27,20 @@ Below lists all currently supported message types, in the form [KIND]: [DATA]
 * chat: String chat message from the client.
 
 ## TODO
-### Important
-This is a list of things I (Nathan) believe to be necessary for our MVP.
-* Ability to start a new game in a gameroom
-* Display current players and people in the room
-* Display messages sent from the server
-* Change role in client
+### Client-side
+* Changing usernames is unintuitive; there needs to be a button.
+* The scrolling on the chat window is wacky.
+* Mobile support (put chat window on another screen)
+* Show whose turn it is.
+* Overall refactor the design code.
+* "Start" and "Stop" buttons are unintuitive
+  (perhaps move them to center screen with more descriptive names or tooltips?)
+* "Others" confusing; maybe "Spectators" instead?
+* "Share" button.
+* Add non-square icons.
 
-### Not Important
-* Look up FSM, Dispatchers, and other Akka stuff to see if we can make things more modular
+### Server-side
+* Change to an FSM model for the Game Room transition logic.
+* Store player username info as a cookie.
+* Send structured data instead of pure String messages.
+* Seperate out the game-logic and the chat-logic of the game room.
