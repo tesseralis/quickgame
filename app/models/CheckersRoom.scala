@@ -4,23 +4,96 @@ import scala.util.{Try, Success, Failure}
 import play.api.libs.json._
 
 object CheckersRoom {
-  type Pos = (Int, Int)
+  type Pos = Int
   object Player extends Enumeration {
-    val Black, Red = Value
+    val White, Red = Value
   }
   type Player = Player.Value
 
   case class Piece(player: Player, isKing: Boolean = false) {
     override def toString = "" + player.id + (if (isKing) "K" else "")
   }
+  object Direction extends Enumeration {
+    val LU, RU, RD, LD = Value
+  }
+  type Direction = Direction.Value
+  import Direction._
+
+  def nextPlayer(player: Player): Player = Player(1 - player.id)
+
+  def validPos(pos: Pos): Boolean = {
+    val (row, col) = coord(pos)
+    row >= 0 && row < 8 && col >= 0 && col < 8
+  }
+
+  def neighbor(pos: Pos, dir: Direction): Pos = {
+    val (row, col) = coord(pos)
+    val (nrow, ncol) = neighbor(row, col, dir)
+    position(nrow, ncol)
+  }
+  def neighbor(row: Int, col: Int, dir: Direction): (Int, Int) = {
+    Direction match {
+      case LU => (row - 1, col - 1)
+      case RU => (row - 1, col + 1)
+      case RD => (row + 1, col + 1)
+      case LD => (row + 1, col - 1)
+      case _ => (row, col)
+    }
+  }
+
+  def playerCount(board: Board, player: Player): Int =
+    board.values.filter(_.player == player).size
+
+  def coord(pos: Pos): (Int, Int) = {
+    val row = pos / 4
+    val col = (pos % 4) + (if (row % 2 == 0) 0 else 1)
+    (row, col)
+  }
+  def position(row: Int, col: Int) =
+    (row * 4) + col + (if (row % 2 == 0) 0 else 1)
 
   type Board = Map[Pos, Piece]
 
+  def kingMaybe(pos: Pos, piece: Piece): Piece = {
+    val (row, col) = coord(pos)
+    if (piece.isKing) piece else piece.copy(isKing = piece.player.id == (7 - col))
+  }
+
+  def initBoard: Board = Map() ++
+    (for (i <- 0 until 12) yield (i, Piece(Player(0)))) ++
+    (for (i <- 20 until 32) yield (i, Piece(Player(1))))
+
+
+  case class Move(pos: Pos, direction: Direction)
+
   trait State {
     def board: Board
-    def move(player: Player, pos: Pos): Try[State] = this match {
-      case turn @ Turn(board, currentPlayer) => Try {
-        turn
+    // todo: Player must take a capture.
+    def move(player: Player, move: Move): Try[State] = this match {
+      case Turn(board, currentPlayer) => Try {
+        val Move(pos, direction) = move
+        require(player == currentPlayer, "Wrong player.")
+        require(board contains pos, "There is no piece here.")
+        val piece = board(pos)
+        require(piece.player == currentPlayer, "You don't own this piece.")
+        require(piece.isKing || (direction.id / 2 == player.id), "This piece is not a king.")
+
+        val dest = neighbor(pos, direction)
+        require(validPos(dest), "You cannot move in that direction.")
+        board.get(dest) match {
+          case None => // No piece, so move here.
+            Turn(board - pos + (dest -> kingMaybe(dest, piece)), nextPlayer(currentPlayer))
+          case Some(piece) =>
+            require(piece.player != currentPlayer)
+            val dest2 = neighbor(dest, direction)
+            require(validPos(dest2), "You cannot jump in that direction.")
+            require(board.get(dest2).isEmpty, "You cannot jump more than one piece.")
+            val newBoard = board - pos - dest + (dest2 -> kingMaybe(dest2, piece))
+            if (playerCount(newBoard, nextPlayer(currentPlayer)) == 0)
+              Win(newBoard, currentPlayer)
+            else
+              Turn(newBoard, currentPlayer)
+        }
       }
       case _ => Failure(new Exception("This game is completed."))
     }
@@ -31,6 +104,7 @@ object CheckersRoom {
     }
   }
 
+
   case class Turn(board: Board, currentPlayer: Player) extends State
   case class Win(board: Board, player: Player) extends State
   case class Draw(board: Board) extends State
@@ -38,22 +112,20 @@ object CheckersRoom {
 
 import CheckersRoom._
 
-class CheckersRoom extends GameRoom[State, Pos] {
+class CheckersRoom extends GameRoom[State, Move] {
   override def maxPlayers = 2
   override def moveFromJson(data: JsValue) = for {
-    row <- (data\"row").asOpt[Int]
-    col <- (data\"col").asOpt[Int]
-  } yield (row, col)
+    index <- (data\"index").asOpt[Pos]
+    dir <- Try(Direction withName (data\"direction").as[String]).toOption
+  } yield Move(index, dir)
   override def stateToJson(state: State) = {
     val (stateString, player) = state match {
       case Turn(_, p) => ("turn", p.id)
       case Win(_, p) => ("win", p.id)
       case Draw(_) => ("draw", -1)
     }
-    val jsonBoard = JsArray(for (i <- 0 until 8) yield {
-      JsArray(for (j <- 0 until 8) yield {
-        JsString(state.board.get((i, j)).map(_.toString).getOrElse(""))
-      })
+    val jsonBoard = JsArray(for (k <- 0 until 32) yield {
+      JsString(state.board.get(k).map(_.toString).getOrElse(""))
     })
     Json.obj(
       "kind" -> stateString,
@@ -62,7 +134,7 @@ class CheckersRoom extends GameRoom[State, Pos] {
     )
   }
 
-  override def move(state: State, idx: Int, mv: Pos) = state.move(Player(idx), mv)
-  override def initState = Turn(Map.empty, Player.Black)
+  override def move(state: State, idx: Int, mv: Move) = state.move(Player(idx), mv)
+  override def initState = Turn(initBoard, Player(0))
   override def winner(state: State) = state.winner
 }
