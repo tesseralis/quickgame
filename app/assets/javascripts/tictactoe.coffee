@@ -17,7 +17,8 @@ $(document).ready ->
 
   # Send a turn through the socket
   sendTurn = (row, col) ->
-    socket.send {kind: 'move', data: {row, col}}
+    #socket.send {kind: 'move', data: {row, col}}
+    socket.send 'move', {row, col}
 
   # Draw the board from the specified board state
   renderBoard = (jsonBoard) ->
