@@ -1,23 +1,18 @@
 $(document).ready ->
-  board = new Board 6, 7, (i, j) ->
-    sendTurn j
+  board = new Board 6, 7, (_, col) ->
+    socket.send 'move', col
 
   board.eachTile (tile) ->
-    tile.addClass("btn")
-    tile.addClass("ttt-tile")
+    tile.addClass "btn"
+    tile.addClass "ttt-tile"
   
-  $('#cfcontainer').append(board.toHTML())
+  $('#cfcontainer').append board.toHTML()
 
   $(window).resize ->
     reset()
 
   socket.bind "gamestate", (data) ->
     renderBoard data.board
-
-  # Send a turn through the socket
-  sendTurn = (col) ->
-    socket.send 'move', col
-    #socket.send {kind: 'move', data: col}
 
   # Draw the board from the specified board state
   renderBoard = (jsonBoard) ->
