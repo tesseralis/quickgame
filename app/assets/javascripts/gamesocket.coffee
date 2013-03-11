@@ -1,26 +1,32 @@
 # An extension of the websocket interface that deals with sending game data.
+# TODO Figure out how to extend WebSocket instead of composition
 class GameSocket
-  _funs = {}
-  _super = undefined
+  _funs = {} # Callback functions for different messages
+  _super = undefined # The underlying WebSocket
 
-  constructor: (wsURL, onOpen) ->
+  constructor: (wsURL) ->
+    # Initialize the private variables
     _super = new WebSocket(wsURL)
-    _super.onopen = (evnt) ->
-      onOpen evnt
     _funs = {}
-    _super.onmessage = (msg) =>
+
+    # Route the received messages to our callback functions
+    _super.onmessage = (msg) ->
       {kind, data} = $.parseJSON msg.data
-      if (fun = _funs[kind])?
-        fun(data)
+      if (f = _funs[kind])?
+        f(data)
       else
         console.warn "Received undefined event #{kind}."
 
   send: (kind, data) ->
     _super.send JSON.stringify {kind, data}
 
-  bind: (name, fn) =>
-    _funs[name] = fn
+  # TODO Multiple bindings
+  bind: (name, f) ->
+    _funs[name] = f
 
+  onopen: (f) -> _super.onopen = f
+
+# TODO Should we include this in a different file?
 $(document).ready ->
-  window.socket = new GameSocket wsURL, ->
-    socket.send 'update', ['members', 'players', 'gamestate']
+  window.socket = new GameSocket wsURL
+  socket.onopen -> socket.send 'update', ['members', 'players', 'gamestate']
