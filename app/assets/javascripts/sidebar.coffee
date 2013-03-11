@@ -12,10 +12,10 @@ $(document).ready ->
     resize()
 
   $('#start').click ->
-    socket.send kind: 'start'
+    socket.send 'start'
 
   $('#stop').click ->
-    socket.send kind: 'stop'
+    socket.send 'stop'
 
   socket.bind 'members', ({players, others}) ->
     playersDiv.html ''
@@ -23,7 +23,7 @@ $(document).ready ->
       li = $ '<li>'
       li.text player
       li.click ->
-        socket.send kind: 'changerole', data: i
+        socket.send 'changerole', i
       playersDiv.append li
 
     othersDiv.text others.join ', '
@@ -42,14 +42,14 @@ $(document).ready ->
     if e.which == 13
       message = messageInput.val()
       if message.length > 0
-        socket.send {kind: "chat", data: message}
+        socket.send 'chat', message
         messageInput.val("")
 
   nameInput.bind 'keypress', (e) ->
     if e.which == 13
       message = nameInput.val()
       if message.length > 0
-        socket.send kind: 'changename', data: message
+        socket.send 'changename', message
 
   resize()
   messageInput.focus()
