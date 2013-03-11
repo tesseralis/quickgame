@@ -181,7 +181,9 @@ trait GameRoom[State, Move] extends Actor {
     case Start(x) => {
       if (roomState != Playing) {
         if (players.size == maxPlayers) {
-          gameState = initState
+          if (roomState = Lobby) {
+            gameState = initState
+          }
           roomState = Playing
           all ! Message("The game has started!")
           all ! GameState(gameState)
