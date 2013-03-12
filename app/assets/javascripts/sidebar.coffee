@@ -6,8 +6,6 @@ $(document).ready ->
   playersDiv = $ '#players'
   othersDiv = $ '#others'
 
-  nameInput = $ '#nameInput'
-
   $(window).resize ->
     resize()
 
@@ -16,6 +14,9 @@ $(document).ready ->
 
   $('#stop').click ->
     socket.send 'stop'
+
+  $('#changename').click ->
+    socket.send 'changename', $('#nameInput').val()
 
   socket.bind 'members', ({players, others}) ->
     playersDiv.html ''
@@ -44,12 +45,6 @@ $(document).ready ->
       if message.length > 0
         socket.send 'chat', message
         messageInput.val("")
-
-  nameInput.bind 'keypress', (e) ->
-    if e.which == 13
-      message = nameInput.val()
-      if message.length > 0
-        socket.send 'changename', message
 
   resize()
   messageInput.focus()
