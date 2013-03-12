@@ -4,7 +4,7 @@ $(document).ready ->
   displayText = $ '#messageText'
 
   playersDiv = $ '#players'
-  othersDiv = $ '#others'
+  spectatorsDiv = $ '#spectators'
 
   $(window).resize ->
     resize()
@@ -18,7 +18,7 @@ $(document).ready ->
   $('#changename').click ->
     socket.send 'changename', $('#nameInput').val()
 
-  socket.bind 'members', ({players, others}) ->
+  socket.bind 'members', ({players, spectators}) ->
     playersDiv.html ''
     for player, i in players then do (i) ->
       li = $ '<li>'
@@ -27,7 +27,7 @@ $(document).ready ->
         socket.send 'changerole', i
       playersDiv.append li
 
-    othersDiv.text others.join ', '
+    spectatorsDiv.text spectators.join ', '
 
   socket.bind "message", (data) ->
     displayText.append($("<p>").text data)
