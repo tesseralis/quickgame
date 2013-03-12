@@ -8,11 +8,13 @@ $(document).ready ->
   
   $('#ttcontainer').append board.toHTML()
 
+
   $(window).resize ->
     reset()
   
   socket.bind "gamestate", (data) ->
     renderBoard data.board
+    $('#player').text "It is Player #{data.player+1}'s turn."
 
   # Draw the board from the specified board state
   renderBoard = (jsonBoard) ->

@@ -12,6 +12,7 @@ $(document).ready ->
     reset()
 
   socket.bind "gamestate", (data) ->
+    $('#player').text "It is Player #{data.player+1}'s turn."
     renderBoard data.board
 
   # Draw the board from the specified board state
