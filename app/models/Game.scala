@@ -12,6 +12,9 @@ trait Game {
 
   /** The abstract type of an action in the game. */
   type Action
+
+  /** The number of players in this game. */
+  def numPlayers: Int
   
   /** The initial state of the game. */
   def init: State
