@@ -2,7 +2,10 @@
 
 @main(g.toString) {
 	<script>
-		var wsURL = '@routes.Application.socket(g, id, None).webSocketURL()'
+		var wsURL = '@routes.Application.socket(g, id, request.session.get("name")).webSocketURL()';
+    // TODO Figure out how to do changing URLs in template.
+    // This might cause an XSS error.
+    var cookieURL = '@routes.Application.setCookie("_")';
 	</script>
 	<script src='@routes.Assets.at("javascripts/gamesocket.js")'></script>
 	<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/sidebar.css")">

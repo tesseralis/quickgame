@@ -16,7 +16,11 @@ $(document).ready ->
     socket.send 'stop'
 
   $('#changename').click ->
-    socket.send 'changename', $('#nameInput').val()
+    name = $('#nameInput').val()
+    # Change the name in the room
+    socket.send 'changename', name
+    # Change the cookie
+    $.ajax cookieURL.replace('_', name)
 
   socket.bind 'members', ({players, spectators}) ->
     playersDiv.html ''

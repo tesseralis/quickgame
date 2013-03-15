@@ -3,7 +3,10 @@
 # ~~~~
 
 # Home page
-GET     /                           controllers.Application.index
+GET     /                       controllers.Application.index
+# Set session
+GET     /cookie                 controllers.Application.setCookie(name)
+
 # Display landing page for a game
 GET     /:game                  controllers.Application.gameIndex(game: GameType)
 # Create a new game
@@ -11,7 +14,8 @@ GET     /:game/new              controllers.Application.newGame(game: GameType)
 # Display a single game
 GET     /:game/:id              controllers.Application.game(game: GameType, id)
 # Websocket stream
-GET     /ws/:game/:id                controllers.Application.socket(game: GameType, id, username: Option[String])
+GET     /ws/:game/:id           controllers.Application.socket(game: GameType, id, username: Option[String])
+
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.at(path="/public", file)
+GET     /assets/*file           controllers.Assets.at(path="/public", file)

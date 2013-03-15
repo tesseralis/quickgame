@@ -44,4 +44,10 @@ object Application extends Controller {
     gameManager.join(g, id, username)
   }
 
+  def setCookie(name: String) = Action {
+    Ok("Set the username").withSession(
+      "name" -> name
+    )
+  }
+
 }
