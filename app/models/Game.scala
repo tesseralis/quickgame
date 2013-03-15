@@ -11,7 +11,7 @@ trait Game {
   type State
 
   /** The abstract type of an action in the game. */
-  type Action
+  type Move
 
   /** The number of players in this game. */
   def numPlayers: Int
@@ -23,5 +23,5 @@ trait Game {
   def isFinal(q: State): Boolean
 
   /** The result of a player moving somewhere. */
-  def transition(q: State, a: Action, p: Player): Try[State]
+  def transition(q: State, m: Move, p: Player): Try[State]
 }

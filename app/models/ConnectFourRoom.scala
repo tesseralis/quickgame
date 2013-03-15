@@ -61,6 +61,10 @@ object ConnectFourRoom {
       case GameStart(_, _) => None
       case GameEnd(_, player) => Some(player)
     }
+    def isFinal = this match {
+      case GameStart(_, _) => false
+      case _ => true
+    }
   }
 
   case class GameStart(board: Board, currentPlayer: Player) extends State
@@ -71,7 +75,7 @@ object ConnectFourRoom {
 import ConnectFourRoom._
 
 class ConnectFourRoom extends GameRoom[State, Int] {
-  override def maxPlayers = 2
+  override def numPlayers = 2
   override def moveFromJson(data: JsValue) = data.asOpt[Int]
   override def stateToJson(state: State) = {
     val (stateString, player) = state match {
@@ -86,5 +90,5 @@ class ConnectFourRoom extends GameRoom[State, Int] {
   }
   override def move(state: State, idx: Int, mv: Int) = state.move(idx, mv)
   override def initState = GameStart((0 until 7) map { _ => List.empty }, 0)
-  override def winner(state: State) = state.winner
+  override def isFinal(state: State) = state.isFinal
 }

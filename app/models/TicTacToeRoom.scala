@@ -47,6 +47,10 @@ object TicTacToeRoom {
       case Win(_, player) => Some(player)
       case Draw(_) => Some(-1)
     }
+    def isFinal = this match {
+      case Turn(_, _) => false
+      case _ => true
+    }
   }
 
   case class Turn(board: Board, currentPlayer: Player) extends State
@@ -57,7 +61,7 @@ object TicTacToeRoom {
 import TicTacToeRoom._
 
 class TicTacToeRoom extends GameRoom[State, Pos] {
-  override def maxPlayers = 2
+  override def numPlayers = 2
   override def moveFromJson(data: JsValue) = for {
     row <- (data\"row").asOpt[Int]
     col <- (data\"col").asOpt[Int]
@@ -81,5 +85,5 @@ class TicTacToeRoom extends GameRoom[State, Pos] {
   }
   override def move(state: State, idx: Int, mv: Pos) = state.move(idx, mv)
   override def initState = Turn(Map.empty, 0)
-  override def winner(state: State) = state.winner
+  override def isFinal(state: State) = state.isFinal
 }

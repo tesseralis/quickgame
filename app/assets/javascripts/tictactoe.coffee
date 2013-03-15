@@ -14,7 +14,10 @@ $(document).ready ->
   
   socket.bind "gamestate", (data) ->
     renderBoard data.board
-    $('#player').text "It is Player #{data.player+1}'s turn."
+    $('#player').text switch data.kind
+      when 'turn' then "It is Player #{data.player+1}'s turn."
+      when 'win' then "Player #{data.player+1} has won!"
+      when 'draw' then "The game is a draw"
 
   # Draw the board from the specified board state
   renderBoard = (jsonBoard) ->

@@ -33,7 +33,7 @@ trait GameRoom[State, Move] extends Actor {
    */
 
   /** The number of players needed to play the game. */
-  def maxPlayers: Int
+  def numPlayers: Int
 
   /** How to convert a move from JSON input. */
   def moveFromJson(input: JsValue): Option[Move]
@@ -47,8 +47,8 @@ trait GameRoom[State, Move] extends Actor {
   /** Initial state of the game. */
   def initState: State
 
-  /** Return the name of the winner (-1 if a draw), or None if the game hasn't ended. */
-  def winner(state: State): Option[Int]
+  /** Returns true if the game has reached a stopping point. */
+  def isFinal(q: State): Boolean
 
   /* Private state variables (to be replaced with an FSM) */
   /** A list of names of members. */
@@ -63,7 +63,7 @@ trait GameRoom[State, Move] extends Actor {
   /** Utility functions that transform our stored data. */
   def playersByIndex: Map[Int, ActorRef] = players map { _.swap }
   def otherNames = (members.keys.toSet -- players.keys).map(members(_)).toSeq
-  def playerNames = (0 until maxPlayers).map {i => 
+  def playerNames = (0 until numPlayers).map {i => 
     playersByIndex.get(i).map(members).getOrElse("")
   }
   def memberNames = (playerNames, otherNames)
@@ -96,8 +96,8 @@ trait GameRoom[State, Move] extends Actor {
       members += (client -> name.getOrElse("user" + client.path.name))
 
       // Make a player if spots are available
-      if (players.size < maxPlayers) {
-        players += (client -> (0 until maxPlayers).indexWhere(!playersByIndex.contains(_)))
+      if (players.size < numPlayers) {
+        players += (client -> (0 until numPlayers).indexWhere(!playersByIndex.contains(_)))
       }
       all ! Members(memberNames)
     }
@@ -130,9 +130,8 @@ trait GameRoom[State, Move] extends Actor {
             case Success(newState) => {
               gameState = newState
               all ! GameState(newState)
-              for (win <- winner(newState)) {
-                all ! Message(if (win >= 0) s"${members(playersByIndex(win))} has won!"
-                              else "The game is a draw.")
+              if (isFinal(newState)) {
+                all ! Message("The game is over.")
                 roomState = Lobby
               }
             }
@@ -151,7 +150,7 @@ trait GameRoom[State, Move] extends Actor {
       if (roomState == Playing) {
         sender ! Message("Cannot change roles in the middle of a game.")
       } else {
-        if (role < 0 || role >= maxPlayers) {
+        if (role < 0 || role >= numPlayers) {
           // Remove player if invalid number is given.
           players -= sender
           sender ! Message("You have been removed as a player.")
@@ -180,7 +179,7 @@ trait GameRoom[State, Move] extends Actor {
     }
     case Start(x) => {
       if (roomState != Playing) {
-        if (players.size == maxPlayers) {
+        if (players.size == numPlayers) {
           if (roomState == Lobby) {
             gameState = initState
           }
