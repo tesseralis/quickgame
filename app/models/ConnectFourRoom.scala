@@ -6,13 +6,13 @@ import akka.actor.Actor
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.json.{Json, JsValue}
 
-object ConnectFourRoom {
-  type Player = Int
+object ConnectFour extends Game {
   type Board = IndexedSeq[Seq[Player]]
+  override type Move = Int
 
   def nextPlayer(p: Player): Player = 1 - p
 
-  def winningMove(board: Board, col: Int, player: Player): Boolean = {
+  def winningMove(board: Board, col: Move, player: Player): Boolean = {
     val defaultBoard = (for {
       j <- 0 until 7
       i <- 0 until board(j).length
@@ -40,9 +40,9 @@ object ConnectFourRoom {
     colWin || rowWin || diagWin || diagWin2
   }
 
-  trait State {
+  trait GameState {
     def board: Board
-    def move(player: Player, col: Int): Try[State] = this match {
+    def move(player: Player, col: Move): Try[State] = this match {
       case turn @ GameStart(board, currentPlayer) => Try {
         require(player == currentPlayer, "Wrong player.")
         require(board(col).length < 6, "Invalid board position")
@@ -66,15 +66,12 @@ object ConnectFourRoom {
       case _ => true
     }
   }
+  type State = GameState
 
   case class GameStart(board: Board, currentPlayer: Player) extends State
   /** Contains the state of the board at end game and the winning player (-1 if none) */
   case class GameEnd(board: Board, player: Player) extends State
-}
 
-import ConnectFourRoom._
-
-class ConnectFourRoom extends GameRoom[State, Int] {
   override def numPlayers = 2
   override def moveFromJson(data: JsValue) = data.asOpt[Int]
   override def stateToJson(state: State) = {
@@ -88,7 +85,9 @@ class ConnectFourRoom extends GameRoom[State, Int] {
       "board" -> Json.toJson(state.board)
     )
   }
-  override def move(state: State, idx: Int, mv: Int) = state.move(idx, mv)
-  override def initState = GameStart((0 until 7) map { _ => List.empty }, 0)
+  override def transition(state: State, mv: Int, player: Player) = state.move(player, mv)
+  override def init = GameStart((0 until 7) map { _ => List.empty }, 0)
   override def isFinal(state: State) = state.isFinal
 }
+
+class ConnectFourRoom extends GameRoom(ConnectFour)

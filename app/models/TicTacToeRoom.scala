@@ -3,19 +3,18 @@ package models
 import scala.util.{Try, Success, Failure}
 import play.api.libs.json.{Json, JsValue, JsArray, JsNumber}
 
-object TicTacToeRoom {
+object TicTacToe extends Game {
 
-  type Pos = (Int, Int)
-  type Player = Int
-  type Board = Map[Pos, Player]
+  override type Move = (Int, Int)
+  type Board = Map[Move, Player]
   
   def nextPlayer(p: Player): Player = 1 - p
-  def outOfBounds(pos: Pos) = {
+  def outOfBounds(pos: Move) = {
     val (i, j) = pos
     i < 0 || i >= 3 || j < 0 || j >= 3
   }
 
-  def winningMove(board: Board, move: Pos, player: Player): Boolean = {
+  def winningMove(board: Board, move: Move, player: Player): Boolean = {
     val defaultBoard = board withDefaultValue -1
     val (row, col) = move
     (0 until 3).forall(defaultBoard(_, col) == player) ||
@@ -26,11 +25,11 @@ object TicTacToeRoom {
 
   trait State {
     def board: Board
-    def move(player: Player, pos: Pos): Try[State] = this match {
+    def move(player: Player, pos: Move): Try[State] = this match {
       case turn @ Turn(board, currentPlayer) => Try {
         require(player == currentPlayer, "Wrong player.")
         require(!board.contains(pos), "Invalid board position.")
-        require(!outOfBounds(pos), "Position out of bounds.")
+        require(!outOfBounds(pos), "Moveition out of bounds.")
         val newBoard = board updated (pos, currentPlayer)
         if (winningMove(newBoard, pos, currentPlayer)) {
           Win(newBoard, currentPlayer)
@@ -56,11 +55,7 @@ object TicTacToeRoom {
   case class Turn(board: Board, currentPlayer: Player) extends State
   case class Win(board: Board, player: Player) extends State
   case class Draw(board: Board) extends State
-}
 
-import TicTacToeRoom._
-
-class TicTacToeRoom extends GameRoom[State, Pos] {
   override def numPlayers = 2
   override def moveFromJson(data: JsValue) = for {
     row <- (data\"row").asOpt[Int]
@@ -83,7 +78,9 @@ class TicTacToeRoom extends GameRoom[State, Pos] {
       "board" -> jsonBoard
     )
   }
-  override def move(state: State, idx: Int, mv: Pos) = state.move(idx, mv)
-  override def initState = Turn(Map.empty, 0)
+  override def transition(state: State, mv: Move, idx: Player) = state.move(idx, mv)
+  override def init = Turn(Map.empty, 0)
   override def isFinal(state: State) = state.isFinal
 }
+
+class TicTacToeRoom extends GameRoom(TicTacToe)

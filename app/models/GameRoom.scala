@@ -21,59 +21,37 @@ object RoomState extends Enumeration {
   val Playing, Paused, Lobby = Value
 }
 
-trait GameRoom[State, Move] extends Actor {
+//trait GameRoom[State, Move] extends Actor {
+class GameRoom(val game: Game) extends Actor {
   import RoomState._
   import GameRoom._
 
   implicit val timeout = Timeout(10.seconds)
 
-  /*
-   * The following defines the public interface for this class.
-   * Override these methods to implement room behavior.
-   */
-
-  /** The number of players needed to play the game. */
-  def numPlayers: Int
-
-  /** How to convert a move from JSON input. */
-  def moveFromJson(input: JsValue): Option[Move]
-
-  /** How to transform a state into JSON. */
-  def stateToJson(input: State): JsValue
-
-  /** Move from one action to another. */
-  def move(state: State, idx: Int, mv: Move): Try[State]
-
-  /** Initial state of the game. */
-  def initState: State
-
-  /** Returns true if the game has reached a stopping point. */
-  def isFinal(q: State): Boolean
-
   /* Private state variables (to be replaced with an FSM) */
   /** A list of names of members. */
   private[this] var members = Map[ActorRef, String]()
   /** A list of current players. */
-  private[this] var players = Map[ActorRef, Int]()
+  private[this] var players = Map[ActorRef, game.Player]()
   /** The state of the game. */
-  private[this] var gameState: State = initState
+  private[this] var gameState: game.State = game.init
   /** The state of the room. */
   private[this] var roomState: RoomState = Lobby
 
   /** Utility functions that transform our stored data. */
-  def playersByIndex: Map[Int, ActorRef] = players map { _.swap }
+  def playersByIndex: Map[game.Player, ActorRef] = players map { _.swap }
   def otherNames = (members.keys.toSet -- players.keys).map(members(_)).toSeq
-  def playerNames = (0 until numPlayers).map {i => 
+  def playerNames = (0 until game.numPlayers).map {i => 
     playersByIndex.get(i).map(members).getOrElse("")
   }
   def memberNames = (playerNames, otherNames)
 
   /* Additional messages specific to states. */
-  object GameMove extends AbstractMove[Move] {
-    override def fromJson(data: JsValue) = moveFromJson(data)
+  object GameMove extends AbstractMove[game.Move] {
+    override def fromJson(data: JsValue) = game.moveFromJson(data)
   }
-  object GameState extends AbstractState[State] {
-    override def toJson(data: State) = stateToJson(data)
+  object GameState extends AbstractState[game.State] {
+    override def toJson(data: game.State) = game.stateToJson(data)
   }
 
   /**
@@ -96,8 +74,8 @@ trait GameRoom[State, Move] extends Actor {
       members += (client -> name.getOrElse("user" + client.path.name))
 
       // Make a player if spots are available
-      if (players.size < numPlayers) {
-        players += (client -> (0 until numPlayers).indexWhere(!playersByIndex.contains(_)))
+      if (players.size < game.numPlayers) {
+        players += (client -> (0 until game.numPlayers).indexWhere(!playersByIndex.contains(_)))
       }
       all ! Members(memberNames)
     }
@@ -122,15 +100,15 @@ trait GameRoom[State, Move] extends Actor {
 
     /* ServerMessages */
     case GameMove(mv) => {
-      players.get(sender) map { idx =>
+      players.get(sender) map { player =>
         if (roomState != Playing) {
           sender ! Message("The game is not in session.")
         } else {
-          move(gameState, idx, mv) match {
+          game.transition(gameState, mv, player) match {
             case Success(newState) => {
               gameState = newState
               all ! GameState(newState)
-              if (isFinal(newState)) {
+              if (game.isFinal(newState)) {
                 all ! Message("The game is over.")
                 roomState = Lobby
               }
@@ -150,7 +128,7 @@ trait GameRoom[State, Move] extends Actor {
       if (roomState == Playing) {
         sender ! Message("Cannot change roles in the middle of a game.")
       } else {
-        if (role < 0 || role >= numPlayers) {
+        if (role < 0 || role >= game.numPlayers) {
           // Remove player if invalid number is given.
           players -= sender
           sender ! Message("You have been removed as a player.")
@@ -179,9 +157,9 @@ trait GameRoom[State, Move] extends Actor {
     }
     case Start(x) => {
       if (roomState != Playing) {
-        if (players.size == numPlayers) {
+        if (players.size == game.numPlayers) {
           if (roomState == Lobby) {
-            gameState = initState
+            gameState = game.init
           }
           roomState = Playing
           all ! Message("The game has started!")
