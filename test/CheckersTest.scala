@@ -6,9 +6,14 @@ import models.Checkers._
 
 class CheckersSpec extends FlatSpec with ShouldMatchers {
   "Checkers" should "let move a piece forward to an empty space" in {
+    val state = Turn(Map(12 -> Piece(0), 31 -> Piece(1)), 0)
+    state.transition(Move(12, Direction.LD), 0).get.board(17) should equal (Piece(0))
+    state.transition(Move(12, Direction.RD), 0).get.board(21) should equal (Piece(0))
   }
 
-  ignore should "let a piece move backwards only if King" in {
+  it should "let a piece move backwards only if King" in {
+    val state = Turn(Map(12 -> Piece(0, true), 13 -> Piece(0), 31 -> Piece(1)), 0)
+    state.transition(Move(12, Direction.LU), 0).get.board(8) should equal (Piece(0, true))
   }
 
   ignore should "turn a piece into a king upon reaching opposite end" in {
