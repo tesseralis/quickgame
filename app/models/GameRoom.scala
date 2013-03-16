@@ -22,7 +22,7 @@ object RoomState extends Enumeration {
 }
 
 //trait GameRoom[State, Move] extends Actor {
-class GameRoom(val game: Game) extends Actor {
+class GameRoom(val game: Game with GameFormat) extends Actor {
   import RoomState._
   import GameRoom._
 
@@ -47,12 +47,16 @@ class GameRoom(val game: Game) extends Actor {
   def memberNames = (playerNames, otherNames)
 
   /* Additional messages specific to states. */
-  object GameMove extends AbstractMove[game.Move] {
-    override def fromJson(data: JsValue) = game.moveFromJson(data)
+  implicit object MoveReads extends Reads[game.Move] {
+    override def reads(json: JsValue) =
+      game.moveFromJson(json).map(JsSuccess(_)).getOrElse(JsError(Seq()))
   }
-  object GameState extends AbstractState[game.State] {
-    override def toJson(data: game.State) = game.stateToJson(data)
+  object GameMove extends AbstractMove[game.Move]
+
+  implicit object StateWrites extends Writes[game.State] {
+    override def writes(data: game.State) = game.stateToJson(data)
   }
+  object GameState extends AbstractState[game.State]
 
   /**
    * Helper object to send the message to all children.

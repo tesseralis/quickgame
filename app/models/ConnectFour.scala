@@ -6,7 +6,7 @@ import akka.actor.Actor
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.json.{Json, JsValue}
 
-object ConnectFour extends Game {
+object ConnectFour extends Game with GameFormat {
   type Board = IndexedSeq[Seq[Player]]
   override type Move = Int
 
