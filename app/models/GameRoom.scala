@@ -52,9 +52,11 @@ class GameRoom(val game: Game) extends Actor {
       game.moveFromJson(json).map(JsSuccess(_)).getOrElse(JsError(Seq()))
   }
   object GameMove extends AbstractMove[game.Move]
-  object GameState extends AbstractState[game.State] {
-    override def toJson(data: game.State) = game.stateToJson(data)
+
+  implicit object StateWrites extends Writes[game.State] {
+    override def writes(data: game.State) = game.stateToJson(data)
   }
+  object GameState extends AbstractState[game.State]
 
   /**
    * Helper object to send the message to all children.
