@@ -22,7 +22,7 @@ $(document).ready ->
     # Change the cookie
     $.ajax cookieURL.replace('_', name)
 
-  socket.bind 'members', ({players, spectators}) ->
+  socket.bind 'members', ({players, others}) ->
     playersDiv.html ''
     for player, i in players then do (i) ->
       li = $ '<li>'
@@ -31,7 +31,7 @@ $(document).ready ->
         socket.send 'changerole', i
       playersDiv.append li
 
-    spectatorsDiv.text spectators.join ', '
+    spectatorsDiv.text others.join ', '
 
   socket.bind "message", (data) ->
     displayText.append($("<p>").text data)
