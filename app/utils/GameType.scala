@@ -12,5 +12,5 @@ trait GameType {
   /**
    * The definition of this game's actions.
    */
-   def model: models.Game
+   def model: models.Game with models.GameFormat
 }

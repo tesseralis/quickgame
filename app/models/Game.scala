@@ -1,7 +1,6 @@
 package models 
 
 import scala.util.Try
-import play.api.libs.json.JsValue
 
 /**
  * The base trait that defines the necessary elements of a game.
@@ -27,11 +26,4 @@ trait Game {
 
   /** The result of a player moving somewhere. */
   def transition(q: State, m: Move, p: Player): Try[State]
-
-  // TODO Separate out this functionality.
-  /** How to convert a move from JSON input. */
-  def moveFromJson(input: JsValue): Option[Move]
-
-  /** How to transform a state into JSON. */
-  def stateToJson(input: State): JsValue
 }

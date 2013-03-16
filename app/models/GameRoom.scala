@@ -22,7 +22,7 @@ object RoomState extends Enumeration {
 }
 
 //trait GameRoom[State, Move] extends Actor {
-class GameRoom(val game: Game) extends Actor {
+class GameRoom(val game: Game with GameFormat) extends Actor {
   import RoomState._
   import GameRoom._
 

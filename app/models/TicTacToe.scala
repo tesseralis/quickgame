@@ -3,7 +3,7 @@ package models
 import scala.util.{Try, Success, Failure}
 import play.api.libs.json.{Json, JsValue, JsArray, JsNumber}
 
-object TicTacToe extends Game {
+object TicTacToe extends Game with GameFormat {
 
   override type Move = (Int, Int)
   type Board = Map[Move, Player]
