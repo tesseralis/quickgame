@@ -9,6 +9,7 @@ trait Game {
   /** Players are represented as integers. */
   type Player = Int
 
+  /** Representation of a state in the game. */
   trait AbstractState {
     /** Returns true if the game has reached a stopping point. */
     def isFinal: Boolean
@@ -28,8 +29,4 @@ trait Game {
   
   /** The initial state of the game. */
   def init: State
-
-  //def isFinal(q: State): Boolean
-
-  //def transition(q: State, m: Move, p: Player): Try[State]
 }
