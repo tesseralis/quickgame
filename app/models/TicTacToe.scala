@@ -23,9 +23,9 @@ object TicTacToe extends Game with GameFormat {
       (0 until 3).forall(k => defaultBoard(k, 2-k) == player)
   }
 
-  trait State {
+  trait State extends AbstractState {
     def board: Board
-    def move(player: Player, pos: Move): Try[State] = this match {
+    override def transition(pos: Move, player: Player): Try[State] = this match {
       case turn @ Turn(board, currentPlayer) => Try {
         require(player == currentPlayer, "Wrong player.")
         require(!board.contains(pos), "Invalid board position.")
@@ -41,12 +41,7 @@ object TicTacToe extends Game with GameFormat {
       }
       case _ => Failure(new Exception("The game is completed."))
     }
-    def winner = this match {
-      case Turn(_, _) => None
-      case Win(_, player) => Some(player)
-      case Draw(_) => Some(-1)
-    }
-    def isFinal = this match {
+    override def isFinal = this match {
       case Turn(_, _) => false
       case _ => true
     }
@@ -78,7 +73,5 @@ object TicTacToe extends Game with GameFormat {
       "board" -> jsonBoard
     )
   }
-  override def transition(state: State, mv: Move, idx: Player) = state.move(idx, mv)
   override def init = Turn(Map.empty, 0)
-  override def isFinal(state: State) = state.isFinal
 }

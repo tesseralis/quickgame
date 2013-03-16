@@ -108,11 +108,11 @@ class GameRoom(val game: Game with GameFormat) extends Actor {
         if (roomState != Playing) {
           sender ! Message("The game is not in session.")
         } else {
-          game.transition(gameState, mv, player) match {
+          gameState.transition(mv, player) match {
             case Success(newState) => {
               gameState = newState
               all ! GameState(newState)
-              if (game.isFinal(newState)) {
+              if (newState.isFinal) {
                 all ! Message("The game is over.")
                 roomState = Lobby
               }

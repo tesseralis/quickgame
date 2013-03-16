@@ -40,9 +40,10 @@ object ConnectFour extends Game with GameFormat {
     colWin || rowWin || diagWin || diagWin2
   }
 
-  trait GameState {
+  trait State extends AbstractState {
     def board: Board
-    def move(player: Player, col: Move): Try[State] = this match {
+
+    override def transition(col: Move, player: Player): Try[State] = this match {
       case turn @ GameStart(board, currentPlayer) => Try {
         require(player == currentPlayer, "Wrong player.")
         require(board(col).length < 6, "Invalid board position")
@@ -57,16 +58,12 @@ object ConnectFour extends Game with GameFormat {
       }
       case GameEnd(_, _) => Failure(new Exception("The game is completed."))
     }
-    def winner = this match {
-      case GameStart(_, _) => None
-      case GameEnd(_, player) => Some(player)
-    }
-    def isFinal = this match {
+
+    override def isFinal = this match {
       case GameStart(_, _) => false
       case _ => true
     }
   }
-  type State = GameState
 
   case class GameStart(board: Board, currentPlayer: Player) extends State
   /** Contains the state of the board at end game and the winning player (-1 if none) */
@@ -85,7 +82,5 @@ object ConnectFour extends Game with GameFormat {
       "board" -> Json.toJson(state.board)
     )
   }
-  override def transition(state: State, mv: Int, player: Player) = state.move(player, mv)
   override def init = GameStart((0 until 7) map { _ => List.empty }, 0)
-  override def isFinal(state: State) = state.isFinal
 }
