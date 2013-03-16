@@ -14,25 +14,29 @@
 			<div class="span9">
 				@content
 			</div>
-			<div class="span3">
+			<div id="sidebar" class="container span3">
         <div class="form-inline">
           <input id="nameInput" class="input-small" type="text" placeholder="Name"></input>
           <button id="changename" class="btn input-small">Change</button>
         </div>
+        
         <div id="controls" class="text-center">
           <button id="start" class="btn btn-success">start</button>
           <button id="stop" class="btn btn-danger">stop</button>
         </div>
+
         <div id="members">
           <h4>Players</h4>
           <ol id="players"></ol>
           <h4>Spectators</h4>
           <p id="spectators"></p>
         </div>
-				<div id="messagePanel">
-					<div id="messageText"></div>
+
+				<div id="messagePanel" class="span12">
+          <div id="messageText" class="span12"></div>
 				</div>
-        <input id="messageInput" type="text"></input>
+
+        <input class="span12" id="messageInput" type="text"></input>
 			</div>
 		</div>
 	</div>

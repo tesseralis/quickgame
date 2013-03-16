@@ -6,8 +6,8 @@ $(document).ready ->
   playersDiv = $ '#players'
   spectatorsDiv = $ '#spectators'
 
-  $(window).resize ->
-    resize()
+  #$(window).resize ->
+  #  resize()
 
   $('#start').click ->
     socket.send 'start'
@@ -37,11 +37,11 @@ $(document).ready ->
     displayText.append($("<p>").text data)
     display.scrollTop(displayText.height())
 
-  resize = () ->
-    parent = $("#messageInput").parent()
-    messageInput.width(parent.width())
-    display.width(parent.width())
-    display.height(messageInput.position().top-parent.position().top)
+    #resize = () ->
+    #  parent = $("#messageInput").parent()
+    #  messageInput.width(parent.width())
+    #  display.width(parent.width())
+    #  display.height(messageInput.position().top-parent.position().top)
 
   messageInput.bind 'keypress', (e) ->
     if e.which == 13
@@ -50,5 +50,5 @@ $(document).ready ->
         socket.send 'chat', message
         messageInput.val("")
 
-  resize()
+        #resize()
   messageInput.focus()
