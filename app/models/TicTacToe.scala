@@ -82,5 +82,3 @@ object TicTacToe extends Game {
   override def init = Turn(Map.empty, 0)
   override def isFinal(state: State) = state.isFinal
 }
-
-class TicTacToeRoom extends GameRoom(TicTacToe)

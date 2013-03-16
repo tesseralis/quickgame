@@ -89,5 +89,3 @@ object ConnectFour extends Game {
   override def init = GameStart((0 until 7) map { _ => List.empty }, 0)
   override def isFinal(state: State) = state.isFinal
 }
-
-class ConnectFourRoom extends GameRoom(ConnectFour)
