@@ -2,7 +2,7 @@ package models
 
 import scala.concurrent.duration._
 
-import akka.actor.Actor
+import akka.actor.{Actor, Props}
 import akka.util.Timeout
 import akka.pattern.{ask, pipe}
 
@@ -37,7 +37,7 @@ class RoomManager(g: GameType) extends Actor {
   override def receive = {
     case Create =>
       val id = generateId(5, id => context.child(id).isEmpty)
-      context.actorOf(g.props, id)
+      context.actorOf(Props(new GameRoom(g.model)), id)
       sender ! id
 
     case Contains(id) =>

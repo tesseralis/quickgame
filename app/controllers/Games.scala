@@ -19,10 +19,10 @@ object Games {
   // todo We should really make each game a sub-project and define the types there. 
   case object TicTacToe extends GameType {
     override def view = views.html.tictactoe.render
-    override def props = Props[TicTacToeRoom]
+    override def model = models.TicTacToe
   }
   case object ConnectFour extends GameType {
     override def view = views.html.connectfour.render
-    override def props = Props[ConnectFourRoom]
+    override def model = models.ConnectFour
   }
 }

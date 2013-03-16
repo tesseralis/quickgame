@@ -10,9 +10,7 @@ trait GameType {
   def view: (String, play.api.mvc.RequestHeader) => play.api.templates.Html
 
   /**
-   * The properties of the actor model for this game.
-   * todo: I'd like to just store the type for the game, but that's not possible because of type
-   * erasure. Oh well, this way, I suppose we can specify the configuration of the properties.
+   * The definition of this game's actions.
    */
-   def props: akka.actor.Props
+   def model: models.Game
 }
