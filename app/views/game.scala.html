@@ -12,7 +12,11 @@
 	<div class="container-fluid">
 		<div class="row-fluid">
 			<div class="span9">
-        <p id="control"></p>
+        <div id="controls" class="form-inline">
+          <button id="start" class="btn btn-success">start</button>
+          <button id="stop" class="btn btn-danger">stop</button>
+          <span id="control"></span>
+        </div>
 				@content
 			</div>
 			<div id="sidebar" class="container span3">
@@ -21,10 +25,6 @@
           <button id="changename" class="btn input-small">Change</button>
         </div>
         
-        <div id="controls" class="text-center">
-          <button id="start" class="btn btn-success">start</button>
-          <button id="stop" class="btn btn-danger">stop</button>
-        </div>
 
         <div id="members">
           <h4>Players</h4>
