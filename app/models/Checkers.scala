@@ -45,7 +45,7 @@ object Checkers extends Game with GameFormat {
 
   def coord(pos: Pos): (Int, Int) = {
     val row = pos / 4
-    val col = (pos % 4) + (if (row % 2 == 0) 0 else 1)
+    val col = 2 * (pos % 4) + (if (row % 2 == 0) 0 else 1)
     (row, col)
   }
   def position(row: Int, col: Int) =
@@ -55,7 +55,7 @@ object Checkers extends Game with GameFormat {
 
   def kingMaybe(pos: Pos, piece: Piece): Piece = {
     val (row, col) = coord(pos)
-    if (piece.isKing) piece else piece.copy(isKing = piece.player == (7 - col))
+    if (piece.isKing) piece else piece.copy(isKing = piece.player == (7 - row))
   }
 
   def initBoard: Board = Map() ++
@@ -87,8 +87,8 @@ object Checkers extends Game with GameFormat {
         board.get(dest) match {
           case None => // No piece, so move here.
             Turn(board - pos + (dest -> kingMaybe(dest, piece)), nextPlayer(currentPlayer))
-          case Some(piece) =>
-            require(piece.player != currentPlayer)
+          case Some(target) =>
+            require(target.player != currentPlayer)
             val dest2 = neighbor(dest, direction)
             require(validPos(dest2), "You cannot jump in that direction.")
             require(board.get(dest2).isEmpty, "You cannot jump more than one piece.")
