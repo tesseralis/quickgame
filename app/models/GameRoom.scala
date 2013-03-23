@@ -159,6 +159,7 @@ class GameRoom(val game: Game with GameFormat) extends Actor {
     }
     case Update(x) => {
       all ! Members(memberNames)
+      all ! Room(roomState.toString.toLowerCase)
       all ! GameState(gameState)
     }
     case Start(x) => {
