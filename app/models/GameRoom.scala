@@ -92,6 +92,7 @@ class GameRoom(val game: Game with GameFormat) extends Actor {
         players -= client
         if (roomState == Playing) {
           roomState = Paused
+          all ! Room("paused")
         }
       }
       all ! Members(memberNames)
@@ -115,6 +116,7 @@ class GameRoom(val game: Game with GameFormat) extends Actor {
               if (newState.isFinal) {
                 all ! Message("The game is over.")
                 roomState = Lobby
+                all ! Room("lobby")
               }
             }
             case Failure(e) =>
@@ -166,6 +168,7 @@ class GameRoom(val game: Game with GameFormat) extends Actor {
             gameState = game.init
           }
           roomState = Playing
+          all ! Room("playing")
           all ! Message("The game has started!")
           all ! GameState(gameState)
         } else {
@@ -178,6 +181,7 @@ class GameRoom(val game: Game with GameFormat) extends Actor {
     case Stop(x) => {
       if (roomState != Lobby) {
         roomState = Lobby
+        all ! Room("lobby")
         all ! Message("The game has been cancelled! Boo.")
       } else {
         sender ! Message("The game is not playing right now.")
