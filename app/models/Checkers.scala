@@ -20,10 +20,8 @@ object Checkers extends Game with GameFormat {
 
   def nextPlayer(player: Player): Player = 1 - player
 
-  def validPos(pos: Pos): Boolean = {
-    val (row, col) = coord(pos)
+  def validPos(row: Int, col: Int): Boolean =
     row >= 0 && row < 8 && col >= 0 && col < 8
-  }
 
   def neighbor(pos: Pos, dir: Direction): Pos = {
     val (row, col) = coord(pos)
@@ -31,7 +29,7 @@ object Checkers extends Game with GameFormat {
     position(nrow, ncol)
   }
   def neighbor(row: Int, col: Int, dir: Direction): (Int, Int) = {
-    dir match {
+     dir match {
       case LU => (row - 1, col - 1)
       case RU => (row - 1, col + 1)
       case RD => (row + 1, col + 1)
@@ -48,8 +46,10 @@ object Checkers extends Game with GameFormat {
     val col = 2 * (pos % 4) + (if (row % 2 == 0) 0 else 1)
     (row, col)
   }
-  def position(row: Int, col: Int) =
+  def position(row: Int, col: Int) = {
+    require(validPos(row, col))
     (row * 4) + (col - (if (row % 2 == 0) 0 else 1)) / 2
+  }
 
   type Board = Map[Pos, Piece]
 
@@ -83,14 +83,12 @@ object Checkers extends Game with GameFormat {
         require(piece.isKing || (direction.id / 2 != player), "This piece is not a king.")
 
         val dest = neighbor(pos, direction)
-        require(validPos(dest), "You cannot move in that direction.")
         board.get(dest) match {
           case None => // No piece, so move here.
             Turn(board - pos + (dest -> kingMaybe(dest, piece)), nextPlayer(currentPlayer))
           case Some(target) =>
             require(target.player != currentPlayer)
             val dest2 = neighbor(dest, direction)
-            require(validPos(dest2), "You cannot jump in that direction.")
             require(board.get(dest2).isEmpty, "You cannot jump more than one piece.")
             val newBoard = board - pos - dest + (dest2 -> kingMaybe(dest2, piece))
             if (playerCount(newBoard, nextPlayer(currentPlayer)) == 0)
