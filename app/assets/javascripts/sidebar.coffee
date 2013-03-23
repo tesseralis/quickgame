@@ -6,15 +6,17 @@ $(document).ready ->
   playersDiv = $ '#players'
   spectatorsDiv = $ '#spectators'
 
+  control = $ '#control'
+
   #$(window).resize ->
   #  resize()
 
   $('#start').click ->
     socket.send 'start'
-
+  
   $('#stop').click ->
     socket.send 'stop'
-
+  
   $('#changename').click ->
     name = $('#nameInput').val()
     # Change the name in the room
@@ -36,6 +38,13 @@ $(document).ready ->
   socket.bind "message", (data) ->
     displayText.append($("<p>").text data)
     display.scrollTop(displayText.height())
+
+  socket.bind 'room', (data) ->
+    control.text switch data
+      when 'lobby' then 'Press "Start" to start the game.'
+      when 'playing' then 'The game is playing right now.'
+      when 'paused' then 'The game is paused. Press "Start" when there are enough players.'
+
 
     #resize = () ->
     #  parent = $("#messageInput").parent()
