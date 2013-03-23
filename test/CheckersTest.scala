@@ -5,44 +5,77 @@ import org.scalatest.matchers.ShouldMatchers
 import models.Checkers._
 
 class CheckersSpec extends FlatSpec with ShouldMatchers {
+  // TODO Copy these tests for the other player...
   "Checkers" should "let move a piece forward to an empty space" in {
     val state = Turn(Map(12 -> Piece(0), 31 -> Piece(1)), 0)
-    state.transition(Move(12, Direction.LD), 0).get.board(17) should equal (Piece(0))
-    state.transition(Move(12, Direction.RD), 0).get.board(21) should equal (Piece(0))
+    state.transition(Move(12, Direction.LD), 0).get.board(16) should be (Piece(0))
+    state.transition(Move(12, Direction.RD), 0).get.board(17) should be (Piece(0))
   }
 
-  it should "let a piece move backwards only if King" in {
-    val state = Turn(Map(12 -> Piece(0, true), 13 -> Piece(0), 31 -> Piece(1)), 0)
+  it should "not let a regular piece move backwards" in {
+    val state = Turn(Map(12 -> Piece(0), 31 -> Piece(1)), 0)
+    state.transition(Move(12, Direction.LU), 0).isFailure should be (true)
+    state.transition(Move(12, Direction.RU), 0).isFailure should be (true)
+  }
+
+  it should "let a King move backwards" in {
+    val state = Turn(Map(12 -> Piece(0, true), 31 -> Piece(1)), 0)
     state.transition(Move(12, Direction.LU), 0).get.board(8) should equal (Piece(0, true))
+    state.transition(Move(12, Direction.RU), 0).get.board(9) should equal (Piece(0, true))
   }
 
-  ignore should "turn a piece into a king upon reaching opposite end" in {
+  it should "turn a piece into a king upon reaching opposite end" in {
+    val state = Turn(Map(25 -> Piece(0), 31 -> Piece(1)), 0)
+    state.transition(Move(12, Direction.LD), 0).get.board(28) should be (Piece(0, true))
   }
 
-  ignore should "not do anything when a king reaches the end" in {
+  it should "not do anything when a king reaches the end" in {
+    val state = Turn(Map(25 -> Piece(0, true), 4 -> Piece(0, true), 31 -> Piece(1)), 0)
+    state.transition(Move(25, Direction.LD), 0).get.board(28) should be (Piece(0, true))
+    state.transition(Move(4, Direction.LU), 0).get.board(0) should be (Piece(0, true))
   }
 
-  ignore should "not let a piece move beyond the board boundaries" in {
+  it should "not let a piece move beyond the board boundaries" in {
+    val state = Turn(Map(16 -> Piece(0), 31 -> Piece(1)), 0)
+    state.transition(Move(16, Direction.LD), 0).isFailure should be (true)
   }
 
-  ignore should "not let a piece jump more than one opponent" in {
+  it should "not let a piece jump more than one opponent" in {
+    val state = Turn(Map(12 -> Piece(0), 17 -> Piece(1), 21 -> Piece(1)), 0)
+    state.transition(Move(12, Direction.RD), 0).isFailure should be (true)
+  }
+  it should "not let jumping a piece go out of bounds" in {
+    val state = Turn(Map(12 -> Piece(0), 16 -> Piece(1)), 0)
+    state.transition(Move(12, Direction.LD), 0).isFailure should be (true)
   }
 
-  ignore should "let a piece jump another piece" in {
+  it should "let a piece jump another piece" in {
+    val state = Turn(Map(12 -> Piece(0), 17 -> Piece(1), 31 -> Piece(1)), 0)
+    val state1 = state.transition(Move(12, Direction.RD), 0).get
+    state1.board.get(17) should be (None)
+    state1.board(21) should be (Piece(0))
   }
 
-  ignore should "change the player when no piece is captured" in {
+  it should "change the player when no piece is captured" in {
+    val state = Turn(Map(12 -> Piece(0), 31 -> Piece(1)), 0)
+    val expected = Turn(Map(16 -> Piece(0), 31 -> Piece(1)), 1)
+    state.transition(Move(12, Direction.LD), 0).get should equal (expected)
   }
 
-  ignore should "remain on the same turn if a piece jumps another piece" in {
+  it should "remain on the same turn if a piece jumps another piece" in {
+    val state = Turn(Map(12 -> Piece(0), 17 -> Piece(1), 31 -> Piece(1)), 0)
+    val expected = Turn(Map(21 -> Piece(0), 31 -> Piece(1)), 0)
+    state.transition(Move(12, Direction.RD), 0).get should equal (expected)
   }
 
-  ignore should "force a player to take a capture" in {
+  it should "force a player to take a capture" in {
+    val state = Turn(Map(12 -> Piece(0), 17 -> Piece(1), 31 -> Piece(1)), 0)
+    state.transition(Move(12, Direction.LD), 0).isFailure should be (true)
   }
 
-  ignore should "end the game in a win if opponent has no more pieces" in {
-  }
-
-  ignore should "end the game in a draw when no valid moves are available" in {
+  it should "end the game in a win if opponent has no more pieces" in {
+    val state = Turn(Map(12 -> Piece(0), 17 -> Piece(1)), 0)
+    val expected = Win(Map(21 -> Piece(0)), 0)
+    state.transition(Move(12, Direction.RD), 0).get should be (expected)
   }
 }
