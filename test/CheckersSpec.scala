@@ -14,8 +14,8 @@ class CheckersSpec extends FlatSpec with ShouldMatchers {
 
   it should "not let a regular piece move backwards" in {
     val state = Turn(Map(12 -> Piece(0), 31 -> Piece(1)), 0)
-    state.transition(Move(12, Direction.LU), 0).isFailure should be (true)
-    state.transition(Move(12, Direction.RU), 0).isFailure should be (true)
+    state.transition(Move(12, Direction.LU), 0) should be ('failure)
+    state.transition(Move(12, Direction.RU), 0) should be ('failure)
   }
 
   it should "let a King move backwards" in {
@@ -37,16 +37,16 @@ class CheckersSpec extends FlatSpec with ShouldMatchers {
 
   it should "not let a piece move beyond the board boundaries" in {
     val state = Turn(Map(16 -> Piece(0), 31 -> Piece(1)), 0)
-    state.transition(Move(16, Direction.LD), 0).isFailure should be (true)
+    state.transition(Move(16, Direction.LD), 0) should be ('failure)
   }
 
   it should "not let a piece jump more than one opponent" in {
     val state = Turn(Map(12 -> Piece(0), 17 -> Piece(1), 21 -> Piece(1)), 0)
-    state.transition(Move(12, Direction.RD), 0).isFailure should be (true)
+    state.transition(Move(12, Direction.RD), 0) should be ('failure)
   }
   it should "not let jumping a piece go out of bounds" in {
     val state = Turn(Map(12 -> Piece(0), 16 -> Piece(1)), 0)
-    state.transition(Move(12, Direction.LD), 0).isFailure should be (true)
+    state.transition(Move(12, Direction.LD), 0) should be ('failure)
   }
 
   it should "let a piece jump another piece" in {
@@ -70,7 +70,7 @@ class CheckersSpec extends FlatSpec with ShouldMatchers {
 
   it should "force a player to take a capture" in {
     val state = Turn(Map(12 -> Piece(0), 17 -> Piece(1), 31 -> Piece(1)), 0)
-    state.transition(Move(12, Direction.LD), 0).isFailure should be (true)
+    state.transition(Move(12, Direction.LD), 0) should be ('failure)
   }
 
   it should "end the game in a win if opponent has no more pieces" in {
