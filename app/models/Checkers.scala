@@ -10,7 +10,7 @@ object Checkers extends Game with GameFormat {
   override def init = Turn(initBoard, 0)
 
   case class Piece(player: Player, isKing: Boolean = false) {
-    override def toString = "" + player + (if (isKing) "K" else "")
+    override def toString = "" + player + (if (isKing) "K" else "R")
   }
   object Direction extends Enumeration {
     val LU, RU, RD, LD = Value
@@ -31,7 +31,7 @@ object Checkers extends Game with GameFormat {
     position(nrow, ncol)
   }
   def neighbor(row: Int, col: Int, dir: Direction): (Int, Int) = {
-    Direction match {
+    dir match {
       case LU => (row - 1, col - 1)
       case RU => (row - 1, col + 1)
       case RD => (row + 1, col + 1)
@@ -49,7 +49,7 @@ object Checkers extends Game with GameFormat {
     (row, col)
   }
   def position(row: Int, col: Int) =
-    (row * 4) + col + (if (row % 2 == 0) 0 else 1)
+    (row * 4) + (col - (if (row % 2 == 0) 0 else 1)) / 2
 
   type Board = Map[Pos, Piece]
 
@@ -80,7 +80,7 @@ object Checkers extends Game with GameFormat {
         require(board contains pos, "There is no piece here.")
         val piece = board(pos)
         require(piece.player == currentPlayer, "You don't own this piece.")
-        require(piece.isKing || (direction.id / 2 == player), "This piece is not a king.")
+        require(piece.isKing || (direction.id / 2 != player), "This piece is not a king.")
 
         val dest = neighbor(pos, direction)
         require(validPos(dest), "You cannot move in that direction.")
