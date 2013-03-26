@@ -1,7 +1,8 @@
-package models
+package games.tictactoe.models
 
 import scala.util.{Try, Success, Failure}
 import play.api.libs.json.{Json, JsValue, JsArray, JsNumber} 
+import models._
 
 object TicTacToe extends Game with GameFormat {
   type Board = Map[Move, Player]

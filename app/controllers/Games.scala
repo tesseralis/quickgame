@@ -18,6 +18,7 @@ object Games {
   // DEFINE GAME CONTROLS HERE
   // todo We should really make each game a sub-project and define the types there. 
   case object TicTacToe extends GameType {
+    import games.tictactoe._
     override def view = views.html.tictactoe.render
     override def model = models.TicTacToe
   }
