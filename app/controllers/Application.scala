@@ -6,7 +6,7 @@ import play.api.mvc.{Controller, WebSocket, Action}
 import play.api.libs.json.JsValue
 
 import models.GameManager
-import utils.GameType
+import common.GameType
 
 object Application extends Controller {
 

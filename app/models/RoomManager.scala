@@ -8,7 +8,7 @@ import akka.pattern.{ask, pipe}
 
 import play.api.libs.concurrent.Execution.Implicits._
 
-import utils.GameType
+import common.GameType
 
 object RoomManager {
   /** Tell the manager to create a room. */

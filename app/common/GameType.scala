@@ -1,4 +1,4 @@
-package utils
+package common
 
 /**
  * Interface between the core application and individual games.

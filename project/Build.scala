@@ -18,8 +18,8 @@ object ApplicationBuild extends Build {
 
     val main = play.Project(appName, appVersion, appDependencies).settings(
       // Add your own project settings here      
-      routesImport ++= Seq("binders._", "_root_.utils._"),
-      templatesImport ++= Seq("_root_.utils._"),
+      routesImport ++= Seq("binders._", "common._"),
+      templatesImport ++= Seq("common._"),
       testOptions in Test := Nil, // No imports for ScalaTest
       Play2WarKeys.servletVersion := "3.0"
     ).settings(Play2WarPlugin.play2WarSettings: _*)

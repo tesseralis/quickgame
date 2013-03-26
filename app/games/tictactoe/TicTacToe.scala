@@ -1,6 +1,6 @@
 package games.tictactoe
 
-import utils.GameType
+import common.GameType
 
 case object TicTacToe extends GameType {
   import games.tictactoe._

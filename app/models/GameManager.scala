@@ -14,7 +14,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
-import utils.GameType
+import common.GameType
 
 
 object GameManager {
