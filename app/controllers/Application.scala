@@ -34,7 +34,7 @@ object Application extends Controller {
     Async {
       gameManager.contains(g, id) map { gameFound =>
         if (gameFound) {
-          Ok(g.view(id, request))
+          Ok(views.html.game(g, id)(g.view))
         } else {
           NotFound(s"Could not find $g game #$id")
         }

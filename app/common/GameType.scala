@@ -7,7 +7,7 @@ trait GameType {
   /**
    * The function that returns the HTML view for this game type.
    */
-  def view: (String, play.api.mvc.RequestHeader) => play.api.templates.Html
+   def view: play.api.templates.Html
 
   /**
    * The definition of this game's actions.

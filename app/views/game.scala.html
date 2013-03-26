@@ -1,45 +1,47 @@
 @(g: GameType, id: String)(content: Html)(implicit request: RequestHeader)
 
 @main(g.toString) {
-	<script>
-		var wsURL = '@routes.Application.socket(g, id, request.session.get("name")).webSocketURL()';
-    // TODO Figure out how to do changing URLs in template.
-    // This might cause an XSS error.
-    var cookieURL = '@routes.Application.setCookie("_")';
-	</script>
-	<script src='@routes.Assets.at("javascripts/gamesocket.js")'></script>
-	<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/sidebar.css")">
-	<div class="container-fluid">
-		<div class="row-fluid">
-			<div class="span9">
-        <div id="controls" class="form-inline">
-          <button id="start" class="btn btn-success">start</button>
-          <button id="stop" class="btn btn-danger">stop</button>
-          <span id="control"></span>
-        </div>
-				@content
-			</div>
-			<div id="sidebar" class="container span3">
-        <div class="form-inline">
-          <input id="nameInput" class="input-small" type="text" placeholder="Name"></input>
-          <button id="changename" class="btn input-small">Change</button>
-        </div>
-        
 
-        <div id="members">
-          <h4>Players</h4>
-          <ol id="players"></ol>
-          <h4>Spectators</h4>
-          <p id="spectators"></p>
-        </div>
+<script>
+  var wsURL = '@routes.Application.socket(g, id, request.session.get("name")).webSocketURL()';
+  // TODO Figure out how to do changing URLs in template.
+  // This might cause an XSS error.
+  var cookieURL = '@routes.Application.setCookie("_")';
+</script>
+<script src='@routes.Assets.at("javascripts/gamesocket.js")'></script>
+<link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/sidebar.css")">
+<div class="container-fluid">
+  <div class="row-fluid">
+    <div class="span9">
+      <div id="controls" class="form-inline">
+        <button id="start" class="btn btn-success">start</button>
+        <button id="stop" class="btn btn-danger">stop</button>
+        <span id="control"></span>
+      </div>
+      @content
+    </div>
+    <div id="sidebar" class="container span3">
+      <div class="form-inline">
+        <input id="nameInput" class="input-small" type="text" placeholder="Name"></input>
+        <button id="changename" class="btn input-small">Change</button>
+      </div>
+      
 
-				<div id="messagePanel" class="span12">
-          <div id="messageText" class="span12"></div>
-				</div>
+      <div id="members">
+        <h4>Players</h4>
+        <ol id="players"></ol>
+        <h4>Spectators</h4>
+        <p id="spectators"></p>
+      </div>
 
-        <input class="span12" id="messageInput" type="text"></input>
-			</div>
-		</div>
-	</div>
-	<script src="@routes.Assets.at("javascripts/sidebar.js")"></script>
+      <div id="messagePanel" class="span12">
+        <div id="messageText" class="span12"></div>
+      </div>
+
+      <input class="span12" id="messageInput" type="text"></input>
+    </div>
+  </div>
+</div>
+<script src="@routes.Assets.at("javascripts/sidebar.js")"></script>
+
 }
