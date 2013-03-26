@@ -10,7 +10,9 @@ import utils.GameType
 
 object Application extends Controller {
 
-  val gameManager = GameManager(Games.values)
+  val gamesAvailable: Set[GameType] = Set(games.tictactoe.TicTacToe, games.connectfour.ConnectFour)
+
+  val gameManager = GameManager(gamesAvailable)
   
   def index = Action {
     Ok(views.html.index())

@@ -4,7 +4,7 @@ import play.api.mvc.PathBindable.Parsing
  */
 package object binders {
   implicit object bindableGameType extends Parsing[utils.GameType](
-    controllers.Games.fromString,
+    controllers.Application.gamesAvailable.map(g => g.toString.toLowerCase -> g).toMap,
     _.toString.toLowerCase,
     (key: String, e: Exception) => e.getMessage
   )
