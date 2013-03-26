@@ -7,7 +7,7 @@ import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.json.{Json, JsValue}
 import models._
 
-object ConnectFour extends Game with GameFormat {
+object ConnectFourModel extends Game with GameFormat {
 
   type Board = IndexedSeq[Seq[Player]]
 

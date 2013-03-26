@@ -1,6 +1,6 @@
 @(id: String)(implicit request: RequestHeader)
 
-@game(controllers.Games.ConnectFour, id) {
+@game(games.connectfour.ConnectFour, id) {
 <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/tictactoe.css")">
 <h3 id="player"></h3>
 <div id="cfcontainer"></div>
