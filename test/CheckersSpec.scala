@@ -26,7 +26,7 @@ class CheckersSpec extends FlatSpec with ShouldMatchers {
 
   it should "turn a piece into a king upon reaching opposite end" in {
     val state = Turn(Map(25 -> Piece(0), 31 -> Piece(1)), 0)
-    state.transition(Move(12, Direction.LD), 0).get.board(28) should be (Piece(0, true))
+    state.transition(Move(25, Direction.LD), 0).get.board(28) should be (Piece(0, true))
   }
 
   it should "not do anything when a king reaches the end" in {
