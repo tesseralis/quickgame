@@ -23,7 +23,7 @@
                         <a href="#" class="dropdown-toggle" data-toggle="dropdown">New<b class="caret"></b></a>
                         <ul class="dropdown-menu">
                           <!-- TODO Make this a request parameter -->
-                          @for(g <- controllers.Application.gamesAvailable) {
+                          @for(g <- controllers.Application.gameTypes) {
                             <li><a href="@routes.Application.newGame(g)">@g.toString</a></li>
                           }
                         </ul>

@@ -1,6 +1,4 @@
 package games.connectfour
+import common.GameType
 
-case object ConnectFour extends common.GameType {
-  override def view = views.html.connectfour()
-  override def model = models.ConnectFourModel
-}
+case object ConnectFour extends GameType

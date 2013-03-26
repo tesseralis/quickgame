@@ -9,6 +9,7 @@ import akka.pattern.{ask, pipe}
 import play.api.libs.concurrent.Execution.Implicits._
 
 import common.GameType
+import common.models.{Game, GameFormat}
 
 object RoomManager {
   /** Tell the manager to create a room. */
@@ -29,7 +30,7 @@ object RoomManager {
 /**
  * Manages the all the rooms of a given game type.
  */
-class RoomManager(g: GameType) extends Actor {
+class RoomManager(model: Game with GameFormat) extends Actor {
   import RoomManager._
 
   implicit val timeout = Timeout(10.seconds)
@@ -37,7 +38,7 @@ class RoomManager(g: GameType) extends Actor {
   override def receive = {
     case Create =>
       val id = generateId(5, id => context.child(id).isEmpty)
-      context.actorOf(Props(new GameRoom(g.model)), id)
+      context.actorOf(Props(new GameRoom(model)), id)
       sender ! id
 
     case Contains(id) =>

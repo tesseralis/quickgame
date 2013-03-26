@@ -5,7 +5,7 @@ import common.GameType
  */
 package object binders {
   implicit object bindableGameType extends Parsing[GameType](
-    controllers.Application.gamesAvailable.map(g => g.toString.toLowerCase -> g).toMap,
+    controllers.Application.gameTypes.map(g => g.toString.toLowerCase -> g).toMap,
     _.toString.toLowerCase,
     (key: String, e: Exception) => e.getMessage
   )
