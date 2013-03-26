@@ -11,6 +11,8 @@ import play.api.libs.json._
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.concurrent.Execution.Implicits._
 
+import common.models.{Game, GameFormat}
+
 // Classes to handle the room state
 object GameRoom {
   case class Join(name: Option[String])
@@ -21,7 +23,6 @@ object RoomState extends Enumeration {
   val Playing, Paused, Lobby = Value
 }
 
-//trait GameRoom[State, Move] extends Actor {
 class GameRoom(val game: Game with GameFormat) extends Actor {
   import RoomState._
   import GameRoom._
