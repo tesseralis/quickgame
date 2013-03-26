@@ -1,10 +1,11 @@
-package models
+package games.connectfour.models
 
 import scala.util.{Try, Success, Failure}
 import akka.actor.Actor
 
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.json.{Json, JsValue}
+import models._
 
 object ConnectFour extends Game with GameFormat {
 

@@ -23,6 +23,7 @@ object Games {
     override def model = models.TicTacToe
   }
   case object ConnectFour extends GameType {
+    import games.connectfour._
     override def view = views.html.connectfour.render
     override def model = models.ConnectFour
   }
