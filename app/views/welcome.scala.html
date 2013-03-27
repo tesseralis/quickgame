@@ -1,6 +1,5 @@
 @()
 
-@import controllers.Games._
 <link rel="stylesheet" media="screen" href="@routes.Assets.at("stylesheets/welcome.css")">
 <div class="container-fluid">
     <div class="hero-unit">
@@ -14,7 +13,7 @@
                 Connect Four is a two-player game in which the players first choose a color and then take turns dropping colored discs from the top into a seven-column, six-row vertically-suspended grid. The pieces fall straight down, occupying the next available space within the column. The object of the game is to connect four of one's own discs of the same color next to each other vertically, horizontally, or diagonally before your opponent. 
                 <small class="pull-right"> -Wikipedia </small>
             </p>
-            <a class="btn btn-primary pull-right" href="@routes.Application.newGame(ConnectFour)">Play Connect Four &raquo;</a>
+            <a class="btn btn-primary pull-right" href="@routes.Application.newGame(games.connectfour.ConnectFour)">Play Connect Four &raquo;</a>
         </div>
         <div class="span4">
             <h1>Tic-tac-toe</h1>
@@ -22,7 +21,7 @@
                 Tic-tac-toe (or Noughts and crosses, Xs and Os) is a pencil-and-paper game for two players, X and O, who take turns marking the spaces in a 3×3 grid. The player who succeeds in placing three respective marks in a horizontal, vertical, or diagonal row wins the game.
                 <small class="pull-right"> -Wikipedia </small>
             </p>
-            <a class="btn btn-primary pull-right" href="@routes.Application.newGame(TicTacToe)">Play TicTacToe &raquo;</a>
+            <a class="btn btn-primary pull-right" href="@routes.Application.newGame(games.tictactoe.TicTacToe)">Play TicTacToe &raquo;</a>
         </div>
     </div>
     <hr>

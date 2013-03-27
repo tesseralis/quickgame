@@ -6,11 +6,27 @@ import play.api.mvc.{Controller, WebSocket, Action}
 import play.api.libs.json.JsValue
 
 import models.GameManager
-import utils.GameType
+import common.{GameType, GameAdapter}
 
 object Application extends Controller {
+  /*
+   * List of the avalailable games.
+   * Add new games to this list in order to make them available to QuickGame.
+   */
+  private[this] val _games: Seq[GameAdapter] = Seq(
+    games.tictactoe.Adapter,
+    games.connectfour.Adapter
+  )
 
-  val gameManager = GameManager(Games.values)
+  /*
+   * Convenience mappings from the game type to the model or view.
+   */
+  val gameViews = _games.map(ctrl => ctrl.gameType -> ctrl.view).toMap
+  val gameModels = _games.map(ctrl => ctrl.gameType -> ctrl.model).toMap
+  val gameTypes = _games.map(_.gameType)
+
+  /** The manager actor. */
+  val gameManager = GameManager(gameModels)
   
   def index = Action {
     Ok(views.html.index())
@@ -32,7 +48,7 @@ object Application extends Controller {
     Async {
       gameManager.contains(g, id) map { gameFound =>
         if (gameFound) {
-          Ok(g.view(id, request))
+          Ok(views.html.game(g, id)(gameViews(g)))
         } else {
           NotFound(s"Could not find $g game #$id")
         }

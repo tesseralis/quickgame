@@ -14,7 +14,8 @@ import play.api.libs.concurrent.Execution.Implicits._
 
 import play.api.Play.current
 
-import utils.GameType
+import common.GameType
+import common.models.{Game, GameFormat}
 
 
 object GameManager {
@@ -22,7 +23,7 @@ object GameManager {
    * Return the default game manager implemenation, an Akka typed actor.
    * @param types The game types available for this manager.
    */
-  def apply(types: Iterable[GameType]): GameManager =
+  def apply(types: Map[GameType, Game with GameFormat]): GameManager =
     TypedActor(Akka.system).typedActorOf(TypedProps(classOf[GameManager],
       new GameManagerImpl(types)), "g")
 }
@@ -43,15 +44,15 @@ trait GameManager {
   def join(g: GameType, id: String, name: Option[String]): Future[WebSocket[JsValue]]
 }
 
-class GameManagerImpl(games: Iterable[GameType]) extends GameManager {
+class GameManagerImpl(games: Map[GameType, Game with GameFormat]) extends GameManager {
 
   implicit val timeout = Timeout(10.seconds)
 
   val ctx = TypedActor.context
 
-  val managers: Map[GameType, ActorRef] = games.map { g =>
-    (g -> ctx.actorOf(Props(new RoomManager(g)), name=g.toString))
-  }.toMap
+  val managers: Map[GameType, ActorRef] = games.map { case (g, model) =>
+    (g -> ctx.actorOf(Props(new RoomManager(model)), name=g.toString))
+  }
 
   override def create(g: GameType) = {
     (managers(g) ? RoomManager.Create).mapTo[String]

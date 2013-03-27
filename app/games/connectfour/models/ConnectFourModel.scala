@@ -1,12 +1,13 @@
-package models
+package games.connectfour.models
 
 import scala.util.{Try, Success, Failure}
 import akka.actor.Actor
 
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.json.{Json, JsValue}
+import common.models.{Game, GameFormat}
 
-object ConnectFour extends Game with GameFormat {
+object ConnectFourModel extends Game with GameFormat {
 
   type Board = IndexedSeq[Seq[Player]]
 

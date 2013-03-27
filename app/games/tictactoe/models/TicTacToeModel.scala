@@ -1,9 +1,10 @@
-package models
+package games.tictactoe.models
 
 import scala.util.{Try, Success, Failure}
 import play.api.libs.json.{Json, JsValue, JsArray, JsNumber} 
+import common.models.{Game, GameFormat}
 
-object TicTacToe extends Game with GameFormat {
+object TicTacToeModel extends Game with GameFormat {
   type Board = Map[Move, Player]
 
   override def numPlayers = 2
