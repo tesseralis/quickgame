@@ -52,7 +52,7 @@ class GameManagerImpl(games: Map[GameType, Game with GameFormat]) extends GameMa
 
   val managers: Map[GameType, ActorRef] = games.map { case (g, model) =>
     (g -> ctx.actorOf(Props(new RoomManager(model)), name=g.toString))
-  }.toMap
+  }
 
   override def create(g: GameType) = {
     (managers(g) ? RoomManager.Create).mapTo[String]

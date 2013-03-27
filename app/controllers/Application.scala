@@ -9,17 +9,23 @@ import models.GameManager
 import common.{GameType, GameAdapter}
 
 object Application extends Controller {
-  private val _games: Set[GameAdapter] = Set(
+  /*
+   * List of the avalailable games.
+   * Add new games to this list in order to make them available to QuickGame.
+   */
+  private[this] val _games: Seq[GameAdapter] = Seq(
     games.tictactoe.Adapter,
     games.connectfour.Adapter
   )
 
+  /*
+   * Convenience mappings from the game type to the model or view.
+   */
   val gameViews = _games.map(ctrl => ctrl.gameType -> ctrl.view).toMap
-
   val gameModels = _games.map(ctrl => ctrl.gameType -> ctrl.model).toMap
-
   val gameTypes = _games.map(_.gameType)
 
+  /** The manager actor. */
   val gameManager = GameManager(gameModels)
   
   def index = Action {
