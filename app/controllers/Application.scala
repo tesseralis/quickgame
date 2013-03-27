@@ -6,25 +6,21 @@ import play.api.mvc.{Controller, WebSocket, Action}
 import play.api.libs.json.JsValue
 
 import models.GameManager
-import common.GameType
-import common.controllers.GameController
+import common.{GameType, GameAdapter}
 
 object Application extends Controller {
-
-  //val gamesAvailable: Set[GameType] = Set(games.tictactoe.TicTacToe, games.connectfour.ConnectFour)
-
-  val gameControllers: Set[GameController] = Set(
-    games.tictactoe.TicTacToeController,
-    games.connectfour.ConnectFourController
+  private val _games: Set[GameAdapter] = Set(
+    games.tictactoe.Adapter,
+    games.connectfour.Adapter
   )
 
-  val gameViews = gameControllers.map(ctrl => ctrl.gameType -> ctrl.view).toMap
+  val gameViews = _games.map(ctrl => ctrl.gameType -> ctrl.view).toMap
 
-  val gameModels = gameControllers.map(ctrl => ctrl.gameType -> ctrl.model).toMap
+  val gameModels = _games.map(ctrl => ctrl.gameType -> ctrl.model).toMap
+
+  val gameTypes = _games.map(_.gameType)
 
   val gameManager = GameManager(gameModels)
-
-  val gameTypes = gameControllers.map(_.gameType)
   
   def index = Action {
     Ok(views.html.index())
