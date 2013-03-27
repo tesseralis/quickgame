@@ -62,9 +62,15 @@ class CheckersSpec extends FlatSpec with ShouldMatchers {
     state.transition(Move(12, Direction.LD), 0).get should equal (expected)
   }
 
-  it should "remain on the same turn if a piece jumps another piece" in {
+  it should "remain on the same turn if a second jump is possible" in {
+    val state = Turn(Map(12 -> Piece(0), 17 -> Piece(1), 25 -> Piece(1)), 0)
+    val expected = Turn(Map(21 -> Piece(0), 25 -> Piece(1)), 0)
+    state.transition(Move(12, Direction.RD), 0).get should equal (expected)
+  }
+
+  it should "change the player when no more captures are available" in {
     val state = Turn(Map(12 -> Piece(0), 17 -> Piece(1), 31 -> Piece(1)), 0)
-    val expected = Turn(Map(21 -> Piece(0), 31 -> Piece(1)), 0)
+    val expected = Turn(Map(21 -> Piece(0), 31 -> Piece(1)), 1)
     state.transition(Move(12, Direction.RD), 0).get should equal (expected)
   }
 
