@@ -1,9 +1,12 @@
-package models
+package games.checkers.models
 
 import scala.util.{Try, Success, Failure}
+
 import play.api.libs.json._
 
-object Checkers extends Game with GameFormat {
+import common.models.{Game, GameFormat}
+
+object CheckersModel extends Game with GameFormat {
   type Pos = Int
   override def numPlayers = 2
 

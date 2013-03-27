@@ -2,7 +2,7 @@ package test
 
 import org.scalatest._
 import org.scalatest.matchers.ShouldMatchers
-import models.Checkers._
+import games.checkers.models.CheckersModel._
 
 class CheckersSpec extends FlatSpec with ShouldMatchers {
   // TODO Copy these tests for the other player...
