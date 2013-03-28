@@ -13,7 +13,8 @@ object ApplicationBuild extends Build {
     val appDependencies = Seq(
       // Add your project dependencies here,
       "org.scala-lang" % "scala-compiler" % "2.10.0",
-      "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test"
+      "org.scalatest" %% "scalatest" % "1.9.1" % "test",
+      "com.typesafe.akka" %% "akka-testkit" % "2.1.2"
     )
 
     val main = play.Project(appName, appVersion, appDependencies).settings(

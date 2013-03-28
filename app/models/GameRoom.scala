@@ -26,6 +26,7 @@ object RoomState extends Enumeration {
 class GameRoom(val game: Game with GameFormat) extends Actor {
   import RoomState._
   import GameRoom._
+  import SCMessage._
 
   implicit val timeout = Timeout(10.seconds)
 
