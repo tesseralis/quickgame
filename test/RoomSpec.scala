@@ -21,7 +21,7 @@ object MockGame extends Game1[Int, Int] {
     util.Success(0)
 }
 
-class RoomSpec(_system: ActorSystem) extends TestKit(ActorSystem("RoomSpec")) 
+class RoomSpec(_system: ActorSystem) extends TestKit(_system) 
     with FlatSpec
     with OneInstancePerTest {
 
