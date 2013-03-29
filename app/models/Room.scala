@@ -9,7 +9,7 @@ object Room {
   case class Join(name: String)
   
   // Room messages
-  case class ChangeName(name: String)
+  case class Changename(name: String)
 
   case class MemberData(name: String)
 
@@ -32,6 +32,7 @@ class Room[GS](game: Game1[GS, _]) extends Actor with FSM[State, Data[GS]] {
   startWith(Idle, Data(Map.empty, game.init))
 
   when(Idle) {
+
     case Event(Join(name), Data(members, gamestate)) => 
       context.watch(sender)
       stay using Data(members + (sender -> MemberData(name)), gamestate)
@@ -39,8 +40,9 @@ class Room[GS](game: Game1[GS, _]) extends Actor with FSM[State, Data[GS]] {
     case Event(Terminated(client), Data(members, gamestate)) =>
       stay using Data(members - client, gamestate)
 
-    case Event(ChangeName(_), data) =>
-      stay using data.copy(members = data.members + (sender -> MemberData("Sal")))
+    case Event(Changename(name), data) =>
+      stay using data.copy(members = data.members + (sender -> MemberData(name)))
+
   }
 
   initialize

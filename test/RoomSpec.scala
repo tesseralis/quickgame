@@ -70,7 +70,7 @@ class RoomSpec(_system: ActorSystem) extends TestKit(_system)
       val client = TestActorRef(new MockClient(room))
       client ! Join("Nathan")
       assert(room.stateData.members(client).name === "Nathan")
-      client ! ChangeName("Sal")
+      client ! Changename("Sal")
       assert(room.stateData.members(client).name === "Sal")
     }
 
