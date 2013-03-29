@@ -1,4 +1,4 @@
-package common.models 
+package common
 
 /**
  * The base trait that defines the necessary elements of a game.

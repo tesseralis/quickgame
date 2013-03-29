@@ -11,7 +11,7 @@ import play.api.libs.json._
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.concurrent.Execution.Implicits._
 
-import common.models.{Game, GameFormat}
+import common.GameModel
 
 // Classes to handle the room state
 object GameRoom {
@@ -23,7 +23,7 @@ object GameRoom {
   case object Lobby extends RoomState
 }
 
-class GameRoom(val game: Game with GameFormat) extends Actor {
+class GameRoom(val game: GameModel) extends Actor {
   import GameRoom._
   import SCMessage._
   import CSMessage._

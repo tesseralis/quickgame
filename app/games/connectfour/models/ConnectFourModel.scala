@@ -5,7 +5,7 @@ import akka.actor.Actor
 
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.json.{Json, JsValue}
-import common.models.{BoardGame, GameFormat}
+import common.{BoardGame, GameFormat}
 
 object ConnectFourModel extends BoardGame with GameFormat {
 

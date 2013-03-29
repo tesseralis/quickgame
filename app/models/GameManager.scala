@@ -15,7 +15,7 @@ import play.api.libs.concurrent.Execution.Implicits._
 import play.api.Play.current
 
 import common.GameType
-import common.models.{Game, GameFormat}
+import common.GameModel
 
 
 object GameManager {
@@ -23,7 +23,7 @@ object GameManager {
    * Return the default game manager implemenation, an Akka typed actor.
    * @param types The game types available for this manager.
    */
-  def apply(types: Map[GameType, Game with GameFormat]): GameManager =
+  def apply(types: Map[GameType, GameModel]): GameManager =
     TypedActor(Akka.system).typedActorOf(TypedProps(classOf[GameManager],
       new GameManagerImpl(types)), "g")
 }
@@ -44,7 +44,7 @@ trait GameManager {
   def join(g: GameType, id: String, name: Option[String]): Future[WebSocket[JsValue]]
 }
 
-class GameManagerImpl(games: Map[GameType, Game with GameFormat]) extends GameManager {
+class GameManagerImpl(games: Map[GameType, GameModel]) extends GameManager {
 
   implicit val timeout = Timeout(10.seconds)
 

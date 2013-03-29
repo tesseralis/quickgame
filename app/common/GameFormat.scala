@@ -1,4 +1,4 @@
-package common.models
+package common
 
 import play.api.libs.json.JsValue
 

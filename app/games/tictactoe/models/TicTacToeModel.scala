@@ -2,7 +2,7 @@ package games.tictactoe.models
 
 import scala.util.{Try, Success, Failure}
 import play.api.libs.json.{Json, JsValue, JsArray, JsNumber} 
-import common.models.{Game, BoardGame, GameFormat}
+import common.{BoardGame, GameFormat}
 
 object TicTacToeModel extends BoardGame with GameFormat {
   type Pos = (Int, Int)

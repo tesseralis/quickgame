@@ -1,4 +1,4 @@
-package common.models
+package common
 
 import scala.util.{Try, Success, Failure}
 

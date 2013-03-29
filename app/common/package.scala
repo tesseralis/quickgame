@@ -1,10 +1,14 @@
 package object common {
-  import models.{Game, GameFormat}
 
   /**
    * Marker trait for a type of game.
    */
   trait GameType
+
+  /**
+   * Convenience type defining what our game model needs.
+   */
+  type GameModel = Game with GameFormat
 
   /**
    * An adapter that lets the application controller know what
@@ -13,7 +17,7 @@ package object common {
   trait GameAdapter {
     def view: play.api.templates.Html
 
-    def model: Game with GameFormat
+    def model: GameModel
 
     def gameType: GameType
   }

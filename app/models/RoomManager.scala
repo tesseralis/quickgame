@@ -8,8 +8,7 @@ import akka.pattern.{ask, pipe}
 
 import play.api.libs.concurrent.Execution.Implicits._
 
-import common.GameType
-import common.models.{Game, GameFormat}
+import common.{GameType, GameModel}
 
 object RoomManager {
   /** Tell the manager to create a room. */
@@ -30,7 +29,7 @@ object RoomManager {
 /**
  * Manages the all the rooms of a given game type.
  */
-class RoomManager(model: Game with GameFormat) extends Actor {
+class RoomManager(model: GameModel) extends Actor {
   import RoomManager._
 
   implicit val timeout = Timeout(10.seconds)
