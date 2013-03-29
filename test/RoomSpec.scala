@@ -4,7 +4,7 @@ import scala.concurrent.duration._
 
 import org.scalatest._
 
-import akka.actor.{Actor, ActorRef, ActorSystem}
+import akka.actor._
 import akka.testkit._
 
 import common.models.Game1
@@ -21,12 +21,6 @@ object MockGame extends Game1[Int, Int] {
   override def isFinal(s: State) = false
   override def transition(s: State, p: Player, m: Move) =
     util.Success(0)
-}
-
-class MockClient(val room: ActorRef) extends Actor {
-  def receive = {
-    case msg => room ! msg
-  }
 }
 
 class RoomSpec(_system: ActorSystem) extends TestKit(_system) 
@@ -51,36 +45,37 @@ class RoomSpec(_system: ActorSystem) extends TestKit(_system)
       assert(room.stateData.gamestate === MockGame.init)
       info("Starts with the initial game state.")
 
-      assert(room.stateName === State.Idle)
+      assert(room.stateName === Idle)
       info("Starts in the Idle state.")
     }
 
     // TODO Make these shared tests between states
 
     "add and remove members" in {
-      val client = TestActorRef(new MockClient(room))
-      client ! Join("Nathan")
+      val client = TestProbe()
+      client.send(room, Join("Nathan"))
       assert(room.stateData.members.size === 1)
       info("Successfully joined the room.")
 
-      client.stop()
-      assert(room.stateData.members.size === 0)
+      client.ref ! PoisonPill
+      assert(room.stateData.members.isEmpty)
       info("Successfully left the room.")
     }
 
     "allow members to change their name" in {
-      val client = TestActorRef(new MockClient(room))
-      client ! Join("Nathan")
-      assert(room.stateData.members(client).name === "Nathan")
-      client ! Changename("Sal")
-      assert(room.stateData.members(client).name === "Sal")
+      val client = TestProbe()
+      client.send(room, Join("Nathan"))
+      assert(room.stateData.members(client.ref).name === "Nathan")
+      client.send(room, ChangeName("Sal"))
+      assert(room.stateData.members(client.ref).name === "Sal")
     }
 
     "respond to update requests" in {
+      val room = TestFSMRef(new Room(MockGame))
       val probe = TestProbe()
       probe.send(room, Join("Nathan"))
       probe.send(room, Update)
-      //probe.expectMsg(room.stateData)
+      probe.expectMsg(room.stateData)
     }
   }
 

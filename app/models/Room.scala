@@ -11,28 +11,26 @@ object Room {
   // Room messages
   // NOTE You cannot have CamelCased names or the messages won't work
   // for some stupid reason...
-  case class Changename(name: String)
+  case class ChangeName(name: String)
   case object Update
 
   /** Stores information about each member. */
   case class MemberData(name: String)
 
-  object State extends Enumeration { 
-    val Idle, Playing = Value 
-  }
-  type State = State.Value
+  sealed trait State
+  case object Idle extends State
+  case object Playing extends State
 
   case class Data[GS](members: Map[ActorRef, MemberData], gamestate: GS)
 }
 
-import Room._
-import Room.State._
 
 /**
  * Represents a room that clients can connect to, to play games.
  * @param game The game definition used for this room
  */
-class Room[GS](game: Game1[GS, _]) extends Actor with FSM[State, Data[GS]] {
+class Room[GS](game: Game1[GS, _]) extends Actor with FSM[Room.State, Room.Data[GS]] {
+  import Room._
   startWith(Idle, Data(Map.empty, game.init))
 
   when(Idle) {
@@ -44,13 +42,15 @@ class Room[GS](game: Game1[GS, _]) extends Actor with FSM[State, Data[GS]] {
     case Event(Terminated(client), Data(members, gamestate)) =>
       stay using Data(members - client, gamestate)
 
-    case Event(Changename(name), Data(members, gamestate)) =>
+    case Event(ChangeName(name), Data(members, gamestate)) =>
       stay using Data(members + (sender -> MemberData(name)), gamestate)
 
-    case Event(_, data) =>
+    case Event(Update, data) =>
       stay replying data 
 
   }
+
+  when (Playing)(FSM.NullFunction)
 
   initialize
 }
