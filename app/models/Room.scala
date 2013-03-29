@@ -39,8 +39,8 @@ class Room[GS](game: Game1[GS, _]) extends Actor with FSM[State, Data[GS]] {
     case Event(Terminated(client), Data(members, gamestate)) =>
       stay using Data(members - client, gamestate)
 
-    case Event(ChangeName(name), Data(members, gamestate)) =>
-      stay using Data(members.updated(sender, MemberData(name)), gamestate)
+    case Event(ChangeName(_), data) =>
+      stay using data.copy(members = data.members + (sender -> MemberData("Sal")))
   }
 
   initialize

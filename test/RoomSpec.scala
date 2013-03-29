@@ -69,6 +69,7 @@ class RoomSpec(_system: ActorSystem) extends TestKit(_system)
     "allow members to change their name" in {
       val client = TestActorRef(new MockClient(room))
       client ! Join("Nathan")
+      assert(room.stateData.members(client).name === "Nathan")
       client ! ChangeName("Sal")
       assert(room.stateData.members(client).name === "Sal")
     }
