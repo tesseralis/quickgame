@@ -12,7 +12,9 @@ object Room {
   // NOTE You cannot have CamelCased names or the messages won't work
   // for some stupid reason...
   case class Changename(name: String)
+  case object Update
 
+  /** Stores information about each member. */
   case class MemberData(name: String)
 
   object State extends Enumeration { 
@@ -44,6 +46,9 @@ class Room[GS](game: Game1[GS, _]) extends Actor with FSM[State, Data[GS]] {
 
     case Event(Changename(name), Data(members, gamestate)) =>
       stay using Data(members + (sender -> MemberData(name)), gamestate)
+
+    case Event(_, data) =>
+      stay replying data 
 
   }
 

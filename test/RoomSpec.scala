@@ -1,9 +1,11 @@
 package test
 
+import scala.concurrent.duration._
+
 import org.scalatest._
 
 import akka.actor.{Actor, ActorRef, ActorSystem}
-import akka.testkit.{TestKit, TestActorRef, TestFSMRef, ImplicitSender}
+import akka.testkit._
 
 import common.models.Game1
 
@@ -74,7 +76,12 @@ class RoomSpec(_system: ActorSystem) extends TestKit(_system)
       assert(room.stateData.members(client).name === "Sal")
     }
 
-    "respond to update requests" is (pending)
+    "respond to update requests" in {
+      val probe = TestProbe()
+      probe.send(room, Join("Nathan"))
+      probe.send(room, Update)
+      //probe.expectMsg(room.stateData)
+    }
   }
 
   "A game room (when idle)" should {
