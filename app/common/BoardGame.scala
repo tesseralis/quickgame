@@ -7,6 +7,8 @@ trait BoardGame extends Game {
 
   protected def boardTransition(board: Board, player: Player, move: Move):Try[State]
 
+  protected def boardInit: Board
+
   sealed trait State {
     def board: Board
   }
@@ -18,6 +20,8 @@ trait BoardGame extends Game {
     case Turn(_, _) => false
     case _ => true
   }
+
+  final override def init = Turn(0, boardInit)
 
   final override def transition(state: State, player: Player, move: Move) = state match {
     case Turn(current, board) => Try {

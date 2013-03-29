@@ -15,7 +15,7 @@ object ConnectFourModel extends BoardGame with GameFormat {
 
   override def numPlayers = 2
 
-  override def init = Turn(0, (0 until 7) map { _ => List.empty })
+  override def boardInit = (0 until 7) map { _ => List.empty }
 
   override def boardTransition(board: Board, player: Player, move: Move) = Try {
     require(board(move).length < 6, "Invalid board position")

@@ -11,7 +11,7 @@ object TicTacToeModel extends BoardGame with GameFormat {
 
   override def numPlayers = 2
 
-  override def init = Turn(0, Map.empty)
+  override def boardInit = Map.empty
 
   override type Move = Pos
 
