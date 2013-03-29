@@ -14,14 +14,29 @@ object Room {
   case class ChangeName(name: String)
   case object Update
 
+  sealed trait Role
+  case object Spectator extends Role
+  case class Player(i: Int) extends Role
   /** Stores information about each member. */
-  case class MemberData(name: String)
+  case class MemberData(name: String, role: Role)
 
   sealed trait State
   case object Idle extends State
   case object Playing extends State
 
   case class Data[GS](members: Map[ActorRef, MemberData], gamestate: GS)
+
+  def nextAvailableRole[A](limit: Int, members: Map[A, MemberData]): Role = {
+    val indices = members.collect {
+      case (_, MemberData(_, Player(i))) => i
+    }.toSet
+
+    (0 until limit).find(!indices.contains(_)).map {
+      Player(_)
+    }.getOrElse {
+      Spectator
+    }
+  }
 }
 
 
@@ -37,13 +52,17 @@ class Room[GS](game: Game1[GS, _]) extends Actor with FSM[Room.State, Room.Data[
 
     case Event(Join(name), Data(members, gamestate)) => 
       context.watch(sender)
-      stay using Data(members + (sender -> MemberData(name)), gamestate)
+      val role = nextAvailableRole(game.numPlayers, members)
+      stay using Data(members + (sender -> MemberData(name, role)), gamestate)
 
     case Event(Terminated(client), Data(members, gamestate)) =>
       stay using Data(members - client, gamestate)
 
     case Event(ChangeName(name), Data(members, gamestate)) =>
-      stay using Data(members + (sender -> MemberData(name)), gamestate)
+      members.get(sender).map { memdata =>
+        val memdata1 = memdata.copy(name = name)
+        stay using Data(members + (sender -> memdata1), gamestate)
+      } getOrElse stay
 
     case Event(Update, data) =>
       stay replying data 

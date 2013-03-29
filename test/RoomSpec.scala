@@ -16,7 +16,7 @@ import models.Room._
  * Define a simple game to test the room on.
  */
 object MockGame extends Game1[Int, Int] {
-  override def numPlayers = 1
+  override def numPlayers = 2
   override def init = 0
   override def isFinal(s: State) = false
   override def transition(s: State, p: Player, m: Move) =
@@ -71,17 +71,38 @@ class RoomSpec(_system: ActorSystem) extends TestKit(_system)
     }
 
     "respond to update requests" in {
-      val room = TestFSMRef(new Room(MockGame))
-      val probe = TestProbe()
-      probe.send(room, Join("Nathan"))
-      probe.send(room, Update)
-      probe.expectMsg(room.stateData)
+      val client = TestProbe()
+      client.send(room, Join("Nathan"))
+      client.send(room, Update)
+      client.expectMsg(room.stateData)
     }
   }
 
   "A game room (when idle)" should {
   
-    "add the first members as players" is (pending)
+    "add the first [numPlayers] members as players and the rest as spectators" in {
+      val player0 = TestProbe()
+      player0.send(room, Join("player0"))
+      assert(room.stateData.members(player0.ref).role === Player(0))
+      
+      for (i <- 1 until MockGame.numPlayers) {
+        val player = TestProbe()
+        player.send(room, Join("player" + i))
+        assert(room.stateData.members(player.ref).role === Player(i))
+      }
+      for (i <- 0 until 10) {
+        val spectator = TestProbe()
+        spectator.send(room, Join("spectator" + i))
+        assert(room.stateData.members(spectator.ref).role === Spectator)
+      }
+      info("Correct roles for people inserted in order.")
+
+      player0.ref ! PoisonPill
+      val player1 = TestProbe()
+      player1.send(room, Join("player100"))
+      assert(room.stateData.members(player1.ref).role === Player(0))
+      info("Correct roles for players inserted out of order.")
+    }
 
     "allow members to freely change player roles" is (pending)
 
