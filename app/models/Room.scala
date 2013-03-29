@@ -13,15 +13,27 @@ object Room {
   }
   type State = State.Value
 
-  case class Data[GS](members: Set[String], gamestate: GS)
+  case class Data[GS](members: Set[ActorRef], gamestate: GS)
 }
 
 import Room._
+import Room.State._
 
 /**
  * Represents a room that clients can connect to, to play games.
  * @param game The game definition used for this room
  */
 class Room[GS](game: Game1[GS, _]) extends Actor with FSM[State, Data[GS]] {
-  startWith(State.Idle, Data(Set.empty, game.init))
+  startWith(Idle, Data(Set.empty, game.init))
+
+  when(Idle) {
+    case Event(Join(name), Data(members, gamestate)) => 
+      context.watch(sender)
+      stay using Data(members + sender, gamestate)
+
+    case Event(Terminated(client), Data(members, gamestate)) =>
+      stay using Data(members - client, gamestate)
+  }
+
+  initialize
 }
