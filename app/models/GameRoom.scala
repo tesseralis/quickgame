@@ -16,15 +16,14 @@ import common.models.{Game, GameFormat}
 // Classes to handle the room state
 object GameRoom {
   case class Join(name: Option[String])
-}
 
-object RoomState extends Enumeration {
-  type RoomState = Value
-  val Playing, Paused, Lobby = Value
+  sealed trait RoomState
+  case object Playing extends RoomState
+  case object Paused extends RoomState
+  case object Lobby extends RoomState
 }
 
 class GameRoom(val game: Game with GameFormat) extends Actor {
-  import RoomState._
   import GameRoom._
   import SCMessage._
   import CSMessage._
