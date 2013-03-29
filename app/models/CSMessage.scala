@@ -7,8 +7,14 @@ object CSMessage {
   implicit object UnitReads extends Reads[Unit] {
     override def reads(json: JsValue) = JsSuccess(Unit)
   }
+  object ChangeRole extends CSMessage[Int]("changerole")
+  object ChangeName extends CSMessage[String]("changename")
+  object Start extends CSMessage[Unit]("start")
+  object Stop extends CSMessage[Unit]("stop")
+  object Update extends CSMessage[Unit]("update")
+  object Chat extends CSMessage[String]("chat")
+  abstract class AbstractMove[M : Reads] extends CSMessage[M]("move")
 }
-import CSMessage._
 
 /**
  * Trait providing pattern matchers for JSON messages from
@@ -24,10 +30,3 @@ sealed abstract class CSMessage[A : Reads](kind: String) {
   }
 }
 
-object ChangeRole extends CSMessage[Int]("changerole")
-object ChangeName extends CSMessage[String]("changename")
-object Start extends CSMessage[Unit]("start")
-object Stop extends CSMessage[Unit]("stop")
-object Update extends CSMessage[Unit]("update")
-object Chat extends CSMessage[String]("chat")
-abstract class AbstractMove[M : Reads] extends CSMessage[M]("move")

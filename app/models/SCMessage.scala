@@ -19,10 +19,9 @@ object SCMessage {
         "others" -> JsArray(data._2.map(JsString))
       )
   }
+  object Members extends SCMessage[(Seq[String], Seq[String])]("members")
+  object Message extends SCMessage[String]("message")
+  object Room extends SCMessage[String]("room")
+  abstract class AbstractState[S : Writes] extends SCMessage[S]("gamestate")
 }
-import SCMessage._
 
-object Members extends SCMessage[(Seq[String], Seq[String])]("members")
-object Message extends SCMessage[String]("message")
-object Room extends SCMessage[String]("room")
-abstract class AbstractState[S : Writes] extends SCMessage[S]("gamestate")
