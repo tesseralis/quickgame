@@ -13,6 +13,10 @@ object Room {
   // for some stupid reason...
   case class ChangeName(name: String)
   case object Update
+  case class Chat(text: String)
+
+  // Room replies
+  case class Message(text: String)
 
   sealed trait Role
   case object Spectator extends Role
@@ -37,6 +41,12 @@ object Room {
       Spectator
     }
   }
+
+  def broadcast[A](members: Map[ActorRef, A], message: Any) {
+    for ((member, _) <- members) {
+      member ! message
+    }
+  }
 }
 
 
@@ -46,6 +56,7 @@ object Room {
  */
 class Room[GS](game: Game1[GS, _]) extends Actor with FSM[Room.State, Room.Data[GS]] {
   import Room._
+
   startWith(Idle, Data(Map.empty, game.init))
 
   when(Idle) {
@@ -62,11 +73,16 @@ class Room[GS](game: Game1[GS, _]) extends Actor with FSM[Room.State, Room.Data[
       members.get(sender).map { memdata =>
         val memdata1 = memdata.copy(name = name)
         stay using Data(members + (sender -> memdata1), gamestate)
-      } getOrElse stay
+      } getOrElse {
+        stay replying Message("You are not in this room.")
+      }
 
     case Event(Update, data) =>
       stay replying data 
 
+    case Event(Chat(text), Data(members, _)) =>
+      broadcast(members, Message(text))
+      stay
   }
 
   when (Playing)(FSM.NullFunction)

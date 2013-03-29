@@ -76,6 +76,17 @@ class RoomSpec(_system: ActorSystem) extends TestKit(_system)
       client.send(room, Update)
       client.expectMsg(room.stateData)
     }
+
+    "allow members to chat" in {
+      val speaker = TestProbe()
+      val listener = TestProbe()
+      speaker.send(room, Join("Speaker"))
+      listener.send(room, Join("Listener"))
+      speaker.send(room, Chat("Hello."))
+      for (client <- Seq(speaker, listener)) {
+        client.expectMsg(Message("Hello."))
+      }
+    }
   }
 
   "A game room (when idle)" should {
@@ -106,7 +117,6 @@ class RoomSpec(_system: ActorSystem) extends TestKit(_system)
 
     "allow members to freely change player roles" is (pending)
 
-    "allow members to chat" is (pending)
 
     "not start the game when there are not enough players" is (pending)
 
