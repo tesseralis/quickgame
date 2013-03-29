@@ -7,17 +7,8 @@ trait Game {
   /** Players are represented as integers. */
   type Player = Int
 
-  /** Representation of a state in the game. */
-  trait AbstractState {
-    /** Returns true if the game has reached a stopping point. */
-    def isFinal: Boolean
-
-    /** The result of a player moving somewhere. */
-    def transition(player: Player, move: Move): util.Try[State]
-  }
-
   /** The abstract type of the internal game state. */
-  type State <: AbstractState
+  type State
 
   /** The abstract type of an action in the game. */
   type Move
@@ -27,4 +18,10 @@ trait Game {
   
   /** The initial state of the game. */
   def init: State
+
+  /** Returns true if the game has reached a stopping point. */
+  def isFinal(state: State): Boolean
+
+  /** The result of a player moving somewhere. */
+  def transition(state: State, player: Player, move: Move): util.Try[State]
 }
