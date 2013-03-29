@@ -56,25 +56,43 @@ class RoomSpec(_system: ActorSystem) extends TestKit(_system)
       client.send(room, Join("Nathan"))
       assert(room.stateData.members.size === 1)
       info("Successfully joined the room.")
+      val client2 = TestProbe()
+      client2.send(room, Join("Sal"))
+      assert(room.stateData.members.size === 2)
+      client.expectMsgType[Members]
+      info("Updated all members when member joined.")
 
-      client.ref ! PoisonPill
-      assert(room.stateData.members.isEmpty)
+      client2.ref ! PoisonPill
+      assert(room.stateData.members.size === 1)
       info("Successfully left the room.")
+      client.expectMsgType[Members]
+      info("Updated all members when member quit.")
     }
 
     "allow members to change their name" in {
       val client = TestProbe()
       client.send(room, Join("Nathan"))
-      assert(room.stateData.members(client.ref).name === "Nathan")
-      client.send(room, ChangeName("Sal"))
-      assert(room.stateData.members(client.ref).name === "Sal")
+      val client2 = TestProbe()
+      client2.send(room, Join("Sal"))
+      client2.receiveN(1)
+
+      client.send(room, ChangeName("Waseem"))
+      assert(room.stateData.members(client.ref).name === "Waseem")
+      info("Successfully changed name.")
+
+      val members = client2.expectMsgType[Members]
+      assert(members(client.ref).name === "Waseem")
+      info("Told others of name update.")
+      
     }
 
     "respond to update requests" in {
       val client = TestProbe()
       client.send(room, Join("Nathan"))
+      client.receiveN(1)
+
       client.send(room, Update)
-      client.expectMsg(room.stateData)
+      client.expectMsgAllOf(room.stateData.members, room.stateData.gamestate)
     }
 
     "allow members to chat" in {
@@ -82,10 +100,10 @@ class RoomSpec(_system: ActorSystem) extends TestKit(_system)
       val listener = TestProbe()
       speaker.send(room, Join("Speaker"))
       listener.send(room, Join("Listener"))
+      listener.receiveN(1)
+
       speaker.send(room, Chat("Hello."))
-      for (client <- Seq(speaker, listener)) {
-        client.expectMsg(Message("Hello."))
-      }
+      listener.expectMsg(Message("Hello."))
     }
   }
 

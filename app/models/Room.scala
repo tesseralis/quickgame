@@ -28,9 +28,11 @@ object Room {
   case object Idle extends State
   case object Playing extends State
 
-  case class Data[GS](members: Map[ActorRef, MemberData], gamestate: GS)
+  type Members = Map[ActorRef, MemberData]
 
-  def nextAvailableRole[A](limit: Int, members: Map[A, MemberData]): Role = {
+  case class Data[GS](members: Members, gamestate: GS)
+
+  def nextAvailableRole(limit: Int, members: Members): Role = {
     val indices = members.collect {
       case (_, MemberData(_, Player(i))) => i
     }.toSet
@@ -42,9 +44,9 @@ object Room {
     }
   }
 
-  def broadcast[A](members: Map[ActorRef, A], message: Any) {
+  def broadcast(members: Members, msg: Any) {
     for ((member, _) <- members) {
-      member ! message
+      member ! msg
     }
   }
 }
@@ -62,23 +64,29 @@ class Room[GS](game: Game1[GS, _]) extends Actor with FSM[Room.State, Room.Data[
   when(Idle) {
 
     case Event(Join(name), Data(members, gamestate)) => 
-      context.watch(sender)
+      context.watch(sender) // We'll know when the member quits
       val role = nextAvailableRole(game.numPlayers, members)
-      stay using Data(members + (sender -> MemberData(name, role)), gamestate)
+      // Add to the list of members
+      val members1 = members + (sender -> MemberData(name, role))
+      broadcast(members1, members1)
+      stay using Data(members1, gamestate)
 
     case Event(Terminated(client), Data(members, gamestate)) =>
-      stay using Data(members - client, gamestate)
+      val members1 = members - client
+      broadcast(members1, members1)
+      stay using Data(members1, gamestate)
 
     case Event(ChangeName(name), Data(members, gamestate)) =>
       members.get(sender).map { memdata =>
-        val memdata1 = memdata.copy(name = name)
-        stay using Data(members + (sender -> memdata1), gamestate)
+        val members1 = members + (sender -> memdata.copy(name = name))
+        broadcast(members1, members1)
+        stay using Data(members1, gamestate)
       } getOrElse {
         stay replying Message("You are not in this room.")
       }
 
-    case Event(Update, data) =>
-      stay replying data 
+    case Event(Update, Data(members, gamestate)) =>
+      stay replying (members) replying (gamestate)
 
     case Event(Chat(text), Data(members, _)) =>
       broadcast(members, Message(text))
