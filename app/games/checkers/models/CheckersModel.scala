@@ -4,13 +4,13 @@ import scala.util.{Try, Success, Failure}
 
 import play.api.libs.json._
 
-import common.models.{Game, GameFormat}
+import common.{BoardGame, GameFormat}
 
-object CheckersModel extends Game with GameFormat {
+object CheckersModel extends BoardGame with GameFormat {
   type Pos = Int
   override def numPlayers = 2
 
-  override def init = Turn(initBoard, 0)
+  override def init = Turn(0, initBoard)
 
   case class Piece(player: Player, isKing: Boolean = false) {
     override def toString = "" + player + (if (isKing) "K" else "R")
@@ -54,7 +54,7 @@ object CheckersModel extends Game with GameFormat {
     (row * 4) + (col - (if (row % 2 == 0) 0 else 1)) / 2
   }
 
-  type Board = Map[Pos, Piece]
+  override type Board = Map[Pos, Piece]
 
   def kingMaybe(pos: Pos, piece: Piece): Piece = {
     val (row, col) = coord(pos)
@@ -68,46 +68,29 @@ object CheckersModel extends Game with GameFormat {
 
   case class Move(pos: Pos, direction: Direction)
 
-  trait State extends AbstractState {
-    def board: Board
-
-    override def isFinal = this match {
-      case Turn(_, _) => false
-      case _ => true
-    }
     // todo: Player must take a capture.
-    override def transition(move: Move, player: Player): Try[State] = this match {
-      case Turn(board, currentPlayer) => Try {
-        val Move(pos, direction) = move
-        require(player == currentPlayer, "Wrong player.")
-        require(board contains pos, "There is no piece here.")
-        val piece = board(pos)
-        require(piece.player == currentPlayer, "You don't own this piece.")
-        require(piece.isKing || (direction.id / 2 != player), "This piece is not a king.")
+  override def boardTransition(board: Board, player: Player, move: Move) = Try {
+      val Move(pos, direction) = move
+      require(board contains pos, "There is no piece here.")
+      val piece = board(pos)
+      require(piece.player == player, "You don't own this piece.")
+      require(piece.isKing || (direction.id / 2 != player), "This piece is not a king.")
 
-        val dest = neighbor(pos, direction)
-        board.get(dest) match {
-          case None => // No piece, so move here.
-            Turn(board - pos + (dest -> kingMaybe(dest, piece)), nextPlayer(currentPlayer))
-          case Some(target) =>
-            require(target.player != currentPlayer)
-            val dest2 = neighbor(dest, direction)
-            require(board.get(dest2).isEmpty, "You cannot jump more than one piece.")
-            val newBoard = board - pos - dest + (dest2 -> kingMaybe(dest2, piece))
-            if (playerCount(newBoard, nextPlayer(currentPlayer)) == 0)
-              Win(newBoard, currentPlayer)
-            else
-              Turn(newBoard, currentPlayer)
-        }
+      val dest = neighbor(pos, direction)
+      board.get(dest) match {
+        case None => // No piece, so move here.
+          Turn(nextPlayer(player), board - pos + (dest -> kingMaybe(dest, piece)))
+        case Some(target) =>
+          require(target.player != player)
+          val dest2 = neighbor(dest, direction)
+          require(board.get(dest2).isEmpty, "You cannot jump more than one piece.")
+          val newBoard = board - pos - dest + (dest2 -> kingMaybe(dest2, piece))
+          if (playerCount(newBoard, nextPlayer(player)) == 0)
+            Win(player, newBoard)
+          else
+            Turn(player, newBoard)
       }
-      case _ => Failure(new Exception("This game is completed."))
     }
-  }
-
-
-  case class Turn(board: Board, currentPlayer: Player) extends State
-  case class Win(board: Board, player: Player) extends State
-  case class Draw(board: Board) extends State
 
   override def moveFromJson(data: JsValue) = for {
     index <- (data\"index").asOpt[Pos]
@@ -115,8 +98,8 @@ object CheckersModel extends Game with GameFormat {
   } yield Move(index, dir)
   override def stateToJson(state: State) = {
     val (stateString, player) = state match {
-      case Turn(_, p) => ("turn", p)
-      case Win(_, p) => ("win", p)
+      case Turn(p, _) => ("turn", p)
+      case Win(p, _) => ("win", p)
       case Draw(_) => ("draw", -1)
     }
     val jsonBoard = JsArray(for (k <- 0 until 32) yield {
