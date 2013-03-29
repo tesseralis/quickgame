@@ -9,6 +9,8 @@ object Room {
   case class Join(name: String)
   
   // Room messages
+  // NOTE You cannot have CamelCased names or the messages won't work
+  // for some stupid reason...
   case class Changename(name: String)
 
   case class MemberData(name: String)
@@ -40,8 +42,8 @@ class Room[GS](game: Game1[GS, _]) extends Actor with FSM[State, Data[GS]] {
     case Event(Terminated(client), Data(members, gamestate)) =>
       stay using Data(members - client, gamestate)
 
-    case Event(Changename(name), data) =>
-      stay using data.copy(members = data.members + (sender -> MemberData(name)))
+    case Event(Changename(name), Data(members, gamestate)) =>
+      stay using Data(members + (sender -> MemberData(name)), gamestate)
 
   }
 
