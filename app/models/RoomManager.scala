@@ -21,8 +21,8 @@ object RoomManager {
 
   /** Create a new random ID string, in the style of collabedit's IDs. */
   @scala.annotation.tailrec
-  def generateId(length: Int, isNew: String => Boolean = _ => true): String = {
-    val id = scala.util.Random.alphanumeric.take(length).mkString.toLowerCase
+  def generateId(length: Int, isNew: String => Boolean): String = {
+    val id = scala.util.Random.alphanumeric.take(length).mkString
     if (isNew(id)) id else generateId(length, isNew)
   }
 }
