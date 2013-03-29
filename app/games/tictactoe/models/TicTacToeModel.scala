@@ -2,46 +2,32 @@ package games.tictactoe.models
 
 import scala.util.{Try, Success, Failure}
 import play.api.libs.json.{Json, JsValue, JsArray, JsNumber} 
-import common.models.{Game, GameFormat}
+import common.models.{Game, BoardGame, GameFormat}
 
-object TicTacToeModel extends Game with GameFormat {
-  type Board = Map[Move, Player]
+object TicTacToeModel extends BoardGame with GameFormat {
+  type Pos = (Int, Int)
+
+  override type Board = Map[Pos, Player]
 
   override def numPlayers = 2
 
-  override def init = Turn(Map.empty, 0)
+  override def init = Turn(0, Map.empty)
 
-  override type Move = (Int, Int)
+  override type Move = Pos
 
-  sealed trait State extends AbstractState {
-    def board: Board
-    override def transition(pos: Move, player: Player): Try[State] = this match {
-      case turn @ Turn(board, currentPlayer) => Try {
-        require(player == currentPlayer, "Wrong player.")
-        require(!board.contains(pos), "Invalid board position.")
-        require(!outOfBounds(pos), "Moveition out of bounds.")
+  override def boardTransition(board: Board, player: Player, move: Move) = Try {
+    require(!board.contains(move), "Invalid board position.")
+    require(!outOfBounds(move), "Moveition out of bounds.")
 
-        val board1 = board updated (pos, currentPlayer)
-        if (winningMove(board1, pos, currentPlayer)) {
-          Win(board1, currentPlayer)
-        } else if (board1.size == 3 * 3) {
-          Draw(board1)
-        } else {
-          Turn(board1, nextPlayer(currentPlayer))
-        }
-      }
-      case _ => Failure(new Exception("The game is completed."))
-    }
-    override def isFinal = this match {
-      case Turn(_, _) => false
-      case _ => true
+    val board1 = board updated (move, player)
+    if (winningMove(board1, move, player)) {
+      Win(player, board1)
+    } else if (board1.size == 3 * 3) {
+      Draw(board1)
+    } else {
+      Turn(nextPlayer(player), board1)
     }
   }
-
-  case class Turn(board: Board, currentPlayer: Player) extends State
-  case class Win(board: Board, player: Player) extends State
-  case class Draw(board: Board) extends State
-
 
   /* JSON Readers and Writers */
   override def moveFromJson(data: JsValue) = for {
@@ -50,8 +36,8 @@ object TicTacToeModel extends Game with GameFormat {
   } yield (row, col)
   override def stateToJson(state: State) = {
     val (stateString, player) = state match {
-      case Turn(_, p) => ("turn", p)
-      case Win(_, p) => ("win", p)
+      case Turn(p, _) => ("turn", p)
+      case Win(p, _) => ("win", p)
       case Draw(_) => ("draw", -1)
     }
     val jsonBoard = JsArray(for (i <- 0 until 3) yield {
@@ -68,7 +54,7 @@ object TicTacToeModel extends Game with GameFormat {
 
   /* Helper functions */
   def nextPlayer(p: Player): Player = 1 - p
-  def outOfBounds(pos: Move) = {
+  def outOfBounds(pos: Pos) = {
     val (i, j) = pos
     i < 0 || i >= 3 || j < 0 || j >= 3
   }

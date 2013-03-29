@@ -1,7 +1,5 @@
 package common.models 
 
-import scala.util.Try
-
 /**
  * The base trait that defines the necessary elements of a game.
  */
@@ -15,7 +13,7 @@ trait Game {
     def isFinal: Boolean
 
     /** The result of a player moving somewhere. */
-    def transition(m: Move, p: Player): Try[State]
+    def transition(player: Player, move: Move): util.Try[State]
   }
 
   /** The abstract type of the internal game state. */

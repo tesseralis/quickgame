@@ -5,52 +5,36 @@ import akka.actor.Actor
 
 import play.api.libs.iteratee.{Iteratee, Concurrent}
 import play.api.libs.json.{Json, JsValue}
-import common.models.{Game, GameFormat}
+import common.models.{BoardGame, GameFormat}
 
-object ConnectFourModel extends Game with GameFormat {
+object ConnectFourModel extends BoardGame with GameFormat {
 
-  type Board = IndexedSeq[Seq[Player]]
+  override type Board = IndexedSeq[Seq[Player]]
 
   override type Move = Int
 
   override def numPlayers = 2
 
-  override def init = GameStart((0 until 7) map { _ => List.empty }, 0)
+  override def init = Turn(0, (0 until 7) map { _ => List.empty })
 
-  trait State extends AbstractState {
-    def board: Board
-
-    override def transition(col: Move, player: Player): Try[State] = this match {
-      case turn @ GameStart(board, currentPlayer) => Try {
-        require(player == currentPlayer, "Wrong player.")
-        require(board(col).length < 6, "Invalid board position")
-        val newBoard = board updated (col, board(col) :+ currentPlayer)
-        if (winningMove(newBoard, col, currentPlayer)) {
-          GameEnd(newBoard, currentPlayer)
-        } else if (newBoard.forall(_.size == 6)) {
-          GameEnd(newBoard, -1)
-        } else {
-          turn.copy(board = newBoard, currentPlayer = nextPlayer(currentPlayer))
-        }
-      }
-      case GameEnd(_, _) => Failure(new Exception("The game is completed."))
-    }
-
-    override def isFinal = this match {
-      case GameStart(_, _) => false
-      case _ => true
+  override def boardTransition(board: Board, player: Player, move: Move) = Try {
+    require(board(move).length < 6, "Invalid board position")
+    val newBoard = board updated (move, board(move) :+ player)
+    if (winningMove(newBoard, move, player)) {
+      Win(player, newBoard)
+    } else if (newBoard.forall(_.size == 6)) {
+      Draw(newBoard)
+    } else {
+      Turn(nextPlayer(player), newBoard)
     }
   }
-
-  case class GameStart(board: Board, currentPlayer: Player) extends State
-  /** Contains the state of the board at end game and the winning player (-1 if none) */
-  case class GameEnd(board: Board, player: Player) extends State
 
   override def moveFromJson(data: JsValue) = data.asOpt[Int]
   override def stateToJson(state: State) = {
     val (stateString, player) = state match {
-      case GameStart(_, p) => ("gamestart", p)
-      case GameEnd(_, p) => ("gameend", p)
+      case Turn(p, _) => ("gamestart", p)
+      case Win(p, _) => ("gameend", p)
+      case Draw(_) => ("draw", -1)
     }
     Json.obj(
       "kind" -> stateString,
