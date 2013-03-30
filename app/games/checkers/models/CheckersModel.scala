@@ -7,7 +7,7 @@ import play.api.libs.json._
 import common.{BoardGame, GameFormat}
 
 object CheckersModel extends BoardGame with GameFormat {
-  type Pos = Int
+  type Pos = (Int, Int)
 
   object Direction extends Enumeration {
     val RD, LD, LU, RU = Value
@@ -33,8 +33,8 @@ object CheckersModel extends BoardGame with GameFormat {
   }
 
   override def boardInit: Board = Map() ++
-    (for (i <- 0 until 12) yield (i, Piece(0))) ++
-    (for (i <- 20 until 32) yield (i, Piece(1)))
+    (for (i <- 0 until 12) yield (toPos(i), Piece(0))) ++
+    (for (i <- 20 until 32) yield (toPos(i), Piece(1)))
 
   override def boardTransition(board: Board, player: Player, move: Move) = Try {
     val Move(pos, direction) = move
@@ -44,9 +44,11 @@ object CheckersModel extends BoardGame with GameFormat {
     require(piece canMoveIn direction, "This piece is not a king.")
 
     val dest = neighbor(pos, direction)
+    require(validPos(dest))
     board.get(dest).map { target =>
       require(target.player != player, "You cannot jump your own piece.")
       val dest2 = neighbor(dest, direction)
+      require(validPos(dest2))
       require(board.get(dest2).isEmpty, "You cannot jump more than one piece.")
       val newBoard = board - pos - dest + (dest2 -> kingMaybe(dest2, piece))
       if (playerCount(newBoard, nextPlayer(player)) == 0)
@@ -65,10 +67,9 @@ object CheckersModel extends BoardGame with GameFormat {
   }
 
   def capturesAvailable(board: Board, player: Player): Boolean =
-    false
-    //board.exists { case (pos, piece) =>
-    //  piece.player == player && piece.moves.exists(dir => canCapture(board, pos, dir))
-    //}
+    board.exists { case (pos, piece) =>
+      piece.player == player && piece.moves.exists(dir => canCapture(board, pos, dir))
+    }
 
   def canCapture(board: Board, source: Pos, dir: Direction): Boolean = {
     val jumped = neighbor(source, dir)
@@ -87,16 +88,14 @@ object CheckersModel extends BoardGame with GameFormat {
 
   def nextPlayer(player: Player): Player = 1 - player
 
-  def validPos(row: Int, col: Int): Boolean =
-    row >= 0 && row < 8 && col >= 0 && col < 8
+  def validPos(pos: Pos): Boolean = {
+    val (row, col) = pos
+    row >= 0 && row < 8 && col >= 0 && col < 8 && ((row + col) % 2 == 0)
+  }
 
   def neighbor(pos: Pos, dir: Direction): Pos = {
-    val (row, col) = coord(pos)
-    val (nrow, ncol) = neighbor(row, col, dir)
-    position(nrow, ncol)
-  }
-  def neighbor(row: Int, col: Int, dir: Direction): (Int, Int) = {
-     dir match {
+    val (row, col) = pos
+    dir match {
       case LU => (row - 1, col - 1)
       case RU => (row - 1, col + 1)
       case RD => (row + 1, col + 1)
@@ -108,27 +107,28 @@ object CheckersModel extends BoardGame with GameFormat {
   def playerCount(board: Board, player: Player): Int =
     board.values.filter(_.player == player).size
 
-  def coord(pos: Pos): (Int, Int) = {
-    val row = pos / 4
-    val col = 2 * (pos % 4) + (if (row % 2 == 0) 0 else 1)
+  def toPos(index: Int): Pos = {
+    val row = index / 4
+    val col = 2 * (index % 4) + (if (row % 2 == 0) 0 else 1)
     (row, col)
   }
-  def position(row: Int, col: Int) = {
-    require(validPos(row, col))
+  def toIndex(pos: Pos) = {
+    val (row, col) = pos
     (row * 4) + (col - (if (row % 2 == 0) 0 else 1)) / 2
   }
 
   def kingMaybe(pos: Pos, piece: Piece): Piece = {
-    val (row, col) = coord(pos)
+    val (row, col) = pos
     if (piece.isKing) piece else piece.copy(isKing = piece.player == (7 - row))
   }
 
   /* JSON Formatters */
 
   override def moveFromJson(data: JsValue) = for {
-    index <- (data\"index").asOpt[Pos]
+    index <- (data\"index").asOpt[Int]
+    pos = toPos(index)
     dir <- Try(Direction withName (data\"direction").as[String]).toOption
-  } yield Move(index, dir)
+  } yield Move(pos, dir)
   override def stateToJson(state: State) = {
     val (stateString, player) = state match {
       case Turn(p, _) => ("turn", p)
@@ -136,7 +136,7 @@ object CheckersModel extends BoardGame with GameFormat {
       case Draw(_) => ("draw", -1)
     }
     val jsonBoard = JsArray(for (k <- 0 until 32) yield {
-      JsString(state.board.get(k).map(_.toString).getOrElse(""))
+      JsString(state.board.get(toPos(k)).map(_.toString).getOrElse(""))
     })
     Json.obj(
       "kind" -> stateString,
