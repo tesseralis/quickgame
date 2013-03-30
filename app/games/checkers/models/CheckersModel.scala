@@ -8,16 +8,75 @@ import common.{BoardGame, GameFormat}
 
 object CheckersModel extends BoardGame with GameFormat {
   type Pos = Int
-  override def numPlayers = 2
 
-  case class Piece(player: Player, isKing: Boolean = false) {
-    override def toString = "" + player + (if (isKing) "K" else "R")
-  }
   object Direction extends Enumeration {
-    val LU, RU, RD, LD = Value
+    val RD, LD, LU, RU = Value
     type Direction = Value
   }
   import Direction._
+
+  override def numPlayers = 2
+
+  override type Board = Map[Pos, Piece]
+
+  case class Move(pos: Pos, direction: Direction)
+
+  case class Piece(player: Player, isKing: Boolean = false) {
+    override def toString =
+      player + (if (isKing) "K" else "R")
+
+    lazy val moves: Set[Direction] =
+      if (isKing) Direction.values
+      else ValueSet(Direction(player * 2), Direction(player * 2 + 1))
+
+    def canMoveIn(dir: Direction): Boolean = moves contains dir
+  }
+
+  override def boardInit: Board = Map() ++
+    (for (i <- 0 until 12) yield (i, Piece(0))) ++
+    (for (i <- 20 until 32) yield (i, Piece(1)))
+
+  override def boardTransition(board: Board, player: Player, move: Move) = Try {
+    val Move(pos, direction) = move
+    require(board contains pos, "There is no piece here.")
+    val piece = board(pos)
+    require(piece.player == player, "This is not your piece.")
+    require(piece canMoveIn direction, "This piece is not a king.")
+
+    val dest = neighbor(pos, direction)
+    board.get(dest).map { target =>
+      require(target.player != player, "You cannot jump your own piece.")
+      val dest2 = neighbor(dest, direction)
+      require(board.get(dest2).isEmpty, "You cannot jump more than one piece.")
+      val newBoard = board - pos - dest + (dest2 -> kingMaybe(dest2, piece))
+      if (playerCount(newBoard, nextPlayer(player)) == 0)
+        Win(player, newBoard)
+      else {
+        if (piece.moves.exists(dir => canCapture(newBoard, dest2, dir)))
+          Turn(player, newBoard)
+        else
+          Turn(nextPlayer(player), newBoard)
+      }
+    } getOrElse {
+      // If the space is unoccupied, simply move there.
+      Turn(nextPlayer(player), board - pos + (dest -> kingMaybe(dest, piece)))
+    }
+  }
+
+  def canCapture(board: Board, source: Pos, dir: Direction): Boolean = {
+    val jumped = neighbor(source, dir)
+    val dest = neighbor(jumped, dir)
+
+    (for {
+      piece <- board.get(source)
+      target <- board.get(jumped)
+    } yield {
+      piece.player != target.player && !board.contains(dest)
+    }) getOrElse {
+      false
+    }
+
+  }
 
   def nextPlayer(player: Player): Player = 1 - player
 
@@ -52,43 +111,12 @@ object CheckersModel extends BoardGame with GameFormat {
     (row * 4) + (col - (if (row % 2 == 0) 0 else 1)) / 2
   }
 
-  override type Board = Map[Pos, Piece]
-
   def kingMaybe(pos: Pos, piece: Piece): Piece = {
     val (row, col) = coord(pos)
     if (piece.isKing) piece else piece.copy(isKing = piece.player == (7 - row))
   }
 
-  override def boardInit: Board = Map() ++
-    (for (i <- 0 until 12) yield (i, Piece(0))) ++
-    (for (i <- 20 until 32) yield (i, Piece(1)))
-
-
-  case class Move(pos: Pos, direction: Direction)
-
-    // todo: Player must take a capture.
-  override def boardTransition(board: Board, player: Player, move: Move) = Try {
-      val Move(pos, direction) = move
-      require(board contains pos, "There is no piece here.")
-      val piece = board(pos)
-      require(piece.player == player, "You don't own this piece.")
-      require(piece.isKing || (direction.id / 2 != player), "This piece is not a king.")
-
-      val dest = neighbor(pos, direction)
-      board.get(dest) match {
-        case None => // No piece, so move here.
-          Turn(nextPlayer(player), board - pos + (dest -> kingMaybe(dest, piece)))
-        case Some(target) =>
-          require(target.player != player)
-          val dest2 = neighbor(dest, direction)
-          require(board.get(dest2).isEmpty, "You cannot jump more than one piece.")
-          val newBoard = board - pos - dest + (dest2 -> kingMaybe(dest2, piece))
-          if (playerCount(newBoard, nextPlayer(player)) == 0)
-            Win(player, newBoard)
-          else
-            Turn(player, newBoard)
-      }
-    }
+  /* JSON Formatters */
 
   override def moveFromJson(data: JsValue) = for {
     index <- (data\"index").asOpt[Pos]

@@ -58,7 +58,7 @@ class CheckersSpec extends FlatSpec with ShouldMatchers {
 
   it should "change the player when no piece is captured" in {
     val state = Turn(0, Map(12 -> Piece(0), 31 -> Piece(1)))
-    val expected = Turn(0, Map(16 -> Piece(0), 31 -> Piece(1)))
+    val expected = Turn(1, Map(16 -> Piece(0), 31 -> Piece(1)))
     transition(state, 0, Move(12, Direction.LD)).get should equal (expected)
   }
 
@@ -70,7 +70,7 @@ class CheckersSpec extends FlatSpec with ShouldMatchers {
 
   it should "change the player when no more captures are available" in {
     val state = Turn(0, Map(12 -> Piece(0), 17 -> Piece(1), 31 -> Piece(1)))
-    val expected = Turn(0, Map(21 -> Piece(0), 31 -> Piece(1)))
+    val expected = Turn(1, Map(21 -> Piece(0), 31 -> Piece(1)))
     transition(state, 0, Move(12, Direction.RD)).get should equal (expected)
   }
 
