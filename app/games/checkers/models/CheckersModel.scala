@@ -10,8 +10,6 @@ object CheckersModel extends BoardGame with GameFormat {
   type Pos = Int
   override def numPlayers = 2
 
-  override def init = Turn(0, initBoard)
-
   case class Piece(player: Player, isKing: Boolean = false) {
     override def toString = "" + player + (if (isKing) "K" else "R")
   }
@@ -61,7 +59,7 @@ object CheckersModel extends BoardGame with GameFormat {
     if (piece.isKing) piece else piece.copy(isKing = piece.player == (7 - row))
   }
 
-  def initBoard: Board = Map() ++
+  override def boardInit: Board = Map() ++
     (for (i <- 0 until 12) yield (i, Piece(0))) ++
     (for (i <- 20 until 32) yield (i, Piece(1)))
 
