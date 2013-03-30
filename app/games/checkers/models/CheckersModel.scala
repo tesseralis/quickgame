@@ -59,9 +59,16 @@ object CheckersModel extends BoardGame with GameFormat {
       }
     } getOrElse {
       // If the space is unoccupied, simply move there.
+      require(!capturesAvailable(board, player), "You must take an available capture")
       Turn(nextPlayer(player), board - pos + (dest -> kingMaybe(dest, piece)))
     }
   }
+
+  def capturesAvailable(board: Board, player: Player): Boolean =
+    false
+    //board.exists { case (pos, piece) =>
+    //  piece.player == player && piece.moves.exists(dir => canCapture(board, pos, dir))
+    //}
 
   def canCapture(board: Board, source: Pos, dir: Direction): Boolean = {
     val jumped = neighbor(source, dir)
