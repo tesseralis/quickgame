@@ -7,30 +7,58 @@ import play.api.libs.json._
 import common.{BoardGame, GameFormat}
 
 object CheckersModel extends BoardGame with GameFormat {
-  type Pos = (Int, Int)
 
+  override def numPlayers = 2
+
+  /**
+   * Defines all posible move direction of checkers,
+   * in clockwise order.
+   * Right-Down, Left-Down, Left-Up, Right-Up
+   */
   object Direction extends Enumeration {
     val RD, LD, LU, RU = Value
     type Direction = Value
   }
   import Direction._
 
-  override def numPlayers = 2
+  /**
+   * Represent the position of the board as its grid position.
+   */
+  type Pos = (Int, Int)
 
-  override type Board = Map[Pos, Piece]
-
-  case class Move(pos: Pos, direction: Direction)
-
+  /**
+   * Representation of a checkers piece.
+   * Contains information on the player and whether the piece is a king.
+   */
   case class Piece(player: Player, isKing: Boolean = false) {
     override def toString =
       player + (if (isKing) "K" else "R")
 
+    /**
+     * The list of possible moves of this piece.
+     * A regular piece may only move forwards, while a king can move
+     * in all four diagonals.
+     */
     lazy val moves: Set[Direction] =
       if (isKing) Direction.values
       else ValueSet(Direction(player * 2), Direction(player * 2 + 1))
 
+    /**
+     * Can this piece move in the specified direction?
+     */
     def canMoveIn(dir: Direction): Boolean = moves contains dir
   }
+
+  /**
+   * Store the board as a mapping from each position to the player that
+   * owns the piece at that position (if it exists).
+   */
+  override type Board = Map[Pos, Piece]
+
+  /**
+   * A player moves by choosing a piece and a direction.
+   */
+  case class Move(pos: Pos, direction: Direction)
 
   override def boardInit: Board = Map() ++
     (for (i <- 0 until 12) yield (toPos(i), Piece(0))) ++
@@ -59,6 +87,7 @@ object CheckersModel extends BoardGame with GameFormat {
         else
           Turn(nextPlayer(player), newBoard)
       }
+      
     } getOrElse {
       // If the space is unoccupied, simply move there.
       require(!capturesAvailable(board, player), "You must take an available capture")
