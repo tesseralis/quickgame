@@ -2,6 +2,9 @@ package object common {
 
   /**
    * Marker trait for a type of game.
+   * This allows us to make a check for the existence of a type of game
+   * during route time, as well as having a non-string identifier for
+   * each game.
    */
   trait GameType
 
@@ -11,11 +14,16 @@ package object common {
   type GameModel = Game with GameFormat
 
   /**
+   * They type of our view.
+   */
+  type GameView = play.api.templates.Html
+
+  /**
    * An adapter that lets the application controller know what
    * model and view to use with the game and the corresponding type.
    */
   trait GameAdapter {
-    def view: play.api.templates.Html
+    def view: GameView
 
     def model: GameModel
 
