@@ -2,10 +2,7 @@ package games
 import common.{GameType, GameAdapter}
 
 package object connectfour {
-  case object ConnectFour extends GameType
-
-  object Adapter extends GameAdapter {
-    override def gameType = ConnectFour
+  case object ConnectFour extends GameType with GameAdapter {
     override def view = views.html.connectfour()
     override def model = models.ConnectFourModel
   }

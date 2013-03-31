@@ -6,24 +6,24 @@ import play.api.mvc.{Controller, WebSocket, Action}
 import play.api.libs.json.JsValue
 
 import models.GameManager
-import common.{GameType, GameAdapter}
+import common._
 
 object Application extends Controller {
   /*
    * List of the avalailable games.
    * Add new games to this list in order to make them available to QuickGame.
    */
-  private[this] val _games: Seq[GameAdapter] = Seq(
-    games.tictactoe.Adapter,
-    games.connectfour.Adapter
+  private[this] val _games: Set[GameAdapter] = Set(
+    games.tictactoe.TicTacToe,
+    games.connectfour.ConnectFour
   )
 
   /*
    * Convenience mappings from the game type to the model or view.
    */
-  val gameViews = _games.map(ctrl => ctrl.gameType -> ctrl.view).toMap
-  val gameModels = _games.map(ctrl => ctrl.gameType -> ctrl.model).toMap
-  val gameTypes = _games.map(_.gameType)
+  val gameViews: Map[GameType, GameView] = _games.map(ctrl => ctrl -> ctrl.view).toMap
+  val gameModels: Map[GameType, GameModel] = _games.map(ctrl => ctrl -> ctrl.model).toMap
+  val gameTypes: Set[GameType] = _games.map(ctrl => ctrl)
 
   /** The manager actor. */
   val gameManager = GameManager(gameModels)

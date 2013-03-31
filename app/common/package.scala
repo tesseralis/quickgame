@@ -22,12 +22,11 @@ package object common {
    * An adapter that lets the application controller know what
    * model and view to use with the game and the corresponding type.
    */
-  trait GameAdapter {
+  trait GameAdapter extends GameType {
+
     def view: GameView
 
     def model: GameModel
-
-    def gameType: GameType
   }
 
 }
