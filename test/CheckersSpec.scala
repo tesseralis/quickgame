@@ -79,7 +79,12 @@ class CheckersSpec extends FlatSpec with ShouldMatchers {
     transition(state, 0, Move((3, 1), Direction.LD)) should be ('failure)
   }
 
-  it should "require a player to use the same piece in a chain of moves" is (pending) 
+  it should "require a player to use the same piece in a chain of moves" in {
+    val state = Turn(0, Map((3, 1) -> Piece(0), (4, 2) -> Piece(1), (6, 2) -> Piece(1), (5, 1) -> Piece(0)))
+    val chain = transition(state, 0, Move((3, 1), Direction.RD)).get
+    transition(chain, 0, Move((5, 1), Direction.RD)) should be ('failure)
+     
+  }
 
   it should "end the game in a win if opponent has no more pieces" in {
     val state = Turn(0, Map((3, 1) -> Piece(0), (4, 2) -> Piece(1)))
