@@ -4,11 +4,13 @@ import scala.util.{Try, Success, Failure}
 
 import play.api.libs.json._
 
-import common.{BoardGame, GameFormat}
+import common.{Game, GameFormat}
 
-object CheckersModel extends BoardGame with GameFormat {
+object CheckersModel extends Game with GameFormat {
 
-  override def numPlayers = 2
+  override type Player = Int
+
+  override def players = 0 until 2
 
   /**
    * Defines all posible move direction of checkers,
@@ -53,18 +55,25 @@ object CheckersModel extends BoardGame with GameFormat {
    * Store the board as a mapping from each position to the player that
    * owns the piece at that position (if it exists).
    */
-  override type Board = Map[Pos, Piece]
+  type Board = Map[Pos, Piece]
+
+  sealed trait State {
+    def board: Board
+  }
+  case class Turn(player: Player, board: Board) extends State
+  case class Win(winner: Player, board: Board) extends State
+  case class Draw(board: Board) extends State
 
   /**
    * A player moves by choosing a piece and a direction.
    */
   case class Move(pos: Pos, direction: Direction)
 
-  override def boardInit: Board = Map() ++
+  def boardInit: Board = Map() ++
     (for (i <- 0 until 12) yield (toPos(i), Piece(0))) ++
     (for (i <- 20 until 32) yield (toPos(i), Piece(1)))
 
-  override def boardTransition(board: Board, player: Player, move: Move) = Try {
+  def boardTransition(board: Board, player: Player, move: Move) = Try {
     val Move(pos, direction) = move
     require(board contains pos, "There is no piece here.")
     val piece = board(pos)
@@ -93,6 +102,21 @@ object CheckersModel extends BoardGame with GameFormat {
       require(!capturesAvailable(board, player), "You must take an available capture")
       Turn(nextPlayer(player), board - pos + (dest -> kingMaybe(dest, piece)))
     }
+  }
+
+  final override def isFinal(state: State) = state match {
+    case Turn(_, _) => false
+    case _ => true
+  }
+
+  final override def init = Turn(0, boardInit)
+
+  final override def transition(state: State, player: Player, move: Move) = state match {
+    case Turn(current, board) => Try {
+      require(player == current, s"It is not $player's turn")
+      boardTransition(board, player, move).get
+    }
+    case _ => Failure(new IllegalStateException("The game has ended."))
   }
 
   def capturesAvailable(board: Board, player: Player): Boolean =
