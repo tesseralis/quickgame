@@ -12,13 +12,6 @@ trait BoardGame extends Game {
    */
   type Board
 
-  /**
-   * The state of the board when the game begins.
-   */
-  protected def boardInit: Board
-
-  protected def playerInit: Player
-
   /** 
    * Pick the next state given the board and current player.
    */
@@ -35,9 +28,6 @@ trait BoardGame extends Game {
     case Turn(_, _) => false
     case _ => true
   }
-
-  /* Start the game with the first player and the initial board state. */
-  final override def init = Turn(playerInit, boardInit)
 
   /* Override transition to choose turn or check for the current player. */
   final override def transition(state: State, player: Player, move: Move) = state match {
