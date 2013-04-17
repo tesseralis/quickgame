@@ -64,6 +64,7 @@ object CheckersModel extends Game with GameFormat {
   }
   sealed trait TurnState extends State {
     override def isFinal = false
+    def player: Player
   }
   sealed trait EndState extends State {
     override def isFinal = true
@@ -74,6 +75,33 @@ object CheckersModel extends Game with GameFormat {
     override def transition(player: Player, move: Move) = Try {
       require(player == this.player)
       boardTransition(board, player, move).get
+    }
+  }
+  case class Chain(player: Player, board: Board, pos: Pos) extends TurnState {
+    override def transition(player: Player, move: Move) = Try {
+      val Move(movepos, direction) = move
+      require(player == this.player)
+      require(movepos == pos)
+      val piece = board(pos)
+      require(piece canMoveIn direction, "This piece is not a king.")
+
+      val jumped = neighbor(pos, direction)
+      require(validPos(jumped))
+      require(board.contains(jumped), "You must move to make a capture.")
+      require(board(jumped).player != player, "You cannot jump your own piece.")
+      val dest = neighbor(jumped, direction)
+      require(validPos(dest))
+      require(!board.contains(jumped))
+      val newBoard = board - pos - jumped + (dest -> kingMaybe(dest, piece))
+      if (playerCount(newBoard, nextPlayer(player)) == 0)
+        Win(player, newBoard)
+      else {
+        if (piece.moves.exists(dir => canCapture(newBoard, dest, dir)))
+          Chain(player, newBoard, dest)
+        else
+          Turn(nextPlayer(player), newBoard)
+      }
+
     }
   }
   case class Win(winner: Player, board: Board) extends EndState
@@ -107,7 +135,7 @@ object CheckersModel extends Game with GameFormat {
         Win(player, newBoard)
       else {
         if (piece.moves.exists(dir => canCapture(newBoard, dest2, dir)))
-          Turn(player, newBoard)
+          Chain(player, newBoard, dest2)
         else
           Turn(nextPlayer(player), newBoard)
       }
@@ -191,6 +219,7 @@ object CheckersModel extends Game with GameFormat {
   override def stateToJson(state: State) = {
     val (stateString, player) = state match {
       case Turn(p, _) => ("turn", p)
+      case Chain(p, _, _) => ("turn", p)
       case Win(p, _) => ("win", p)
       case Draw(_) => ("draw", -1)
     }
