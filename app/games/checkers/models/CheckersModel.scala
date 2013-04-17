@@ -59,10 +59,25 @@ object CheckersModel extends Game with GameFormat {
 
   sealed trait State {
     def board: Board
+    def isFinal: Boolean
+    def transition(player: Player, move: Move): Try[State]
   }
-  case class Turn(player: Player, board: Board) extends State
-  case class Win(winner: Player, board: Board) extends State
-  case class Draw(board: Board) extends State
+  sealed trait TurnState extends State {
+    override def isFinal = false
+  }
+  sealed trait EndState extends State {
+    override def isFinal = true
+    override def transition(player: Player, move: Move) =
+      Failure(new java.lang.IllegalStateException("The game is over."))
+  }
+  case class Turn(player: Player, board: Board) extends TurnState {
+    override def transition(player: Player, move: Move) = Try {
+      require(player == this.player)
+      boardTransition(board, player, move).get
+    }
+  }
+  case class Win(winner: Player, board: Board) extends EndState
+  case class Draw(board: Board) extends EndState
 
   /**
    * A player moves by choosing a piece and a direction.
@@ -104,20 +119,11 @@ object CheckersModel extends Game with GameFormat {
     }
   }
 
-  final override def isFinal(state: State) = state match {
-    case Turn(_, _) => false
-    case _ => true
-  }
+  final override def isFinal(state: State) = state.isFinal
 
   final override def init = Turn(0, boardInit)
 
-  final override def transition(state: State, player: Player, move: Move) = state match {
-    case Turn(current, board) => Try {
-      require(player == current, s"It is not $player's turn")
-      boardTransition(board, player, move).get
-    }
-    case _ => Failure(new IllegalStateException("The game has ended."))
-  }
+  final override def transition(state: State, player: Player, move: Move) = state.transition(player, move)
 
   def capturesAvailable(board: Board, player: Player): Boolean =
     board.exists { case (pos, piece) =>
