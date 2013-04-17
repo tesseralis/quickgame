@@ -4,8 +4,8 @@ package common
  * The base trait that defines the necessary elements of a game.
  */
 trait Game {
-  /** Players are represented as integers. */
-  type Player = Int
+  /** The abstract type of a player in the game. */
+  type Player
 
   /** The abstract type of the internal game state. */
   type State
@@ -13,8 +13,11 @@ trait Game {
   /** The abstract type of an action in the game. */
   type Move
 
+  /** The list of players in this game. */
+  def players: Seq[Player]
+
   /** The number of players in this game. */
-  def numPlayers: Int
+  def numPlayers: Int = players.length
   
   /** The initial state of the game. */
   def init: State

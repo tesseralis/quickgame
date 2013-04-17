@@ -34,14 +34,14 @@ class GameRoom(val game: GameModel) extends Actor {
   /** A list of names of members. */
   private[this] var members = Map[ActorRef, String]()
   /** A list of current players. */
-  private[this] var players = Map[ActorRef, game.Player]()
+  private[this] var players = Map[ActorRef, Int]()
   /** The state of the game. */
   private[this] var gameState: game.State = game.init
   /** The state of the room. */
   private[this] var roomState: RoomState = Lobby
 
   /** Utility functions that transform our stored data. */
-  def playersByIndex: Map[game.Player, ActorRef] = players map { _.swap }
+  def playersByIndex: Map[Int, ActorRef] = players map { _.swap }
   def otherNames = (members.keys.toSet -- players.keys).map(members(_)).toSeq
   def playerNames = (0 until game.numPlayers).map {i => 
     playersByIndex.get(i).map(members).getOrElse("")
@@ -111,7 +111,7 @@ class GameRoom(val game: GameModel) extends Actor {
         if (roomState != Playing) {
           sender ! Message("The game is not in session.")
         } else {
-          game.transition(gameState, player, mv) match {
+          game.transition(gameState, game.players(player), mv) match {
             case Success(newState) => {
               gameState = newState
               all ! GameState(newState)

@@ -13,7 +13,11 @@ object ConnectFourModel extends BoardGame with GameFormat {
 
   override type Move = Int
 
-  override def numPlayers = 2
+  override type Player = Int
+
+  override def players = 0 until 2
+
+  override def playerInit = 0
 
   override def boardInit = (0 until 7) map { _ => List.empty }
 

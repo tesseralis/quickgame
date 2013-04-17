@@ -17,6 +17,8 @@ trait BoardGame extends Game {
    */
   protected def boardInit: Board
 
+  protected def playerInit: Player
+
   /** 
    * Pick the next state given the board and current player.
    */
@@ -35,7 +37,7 @@ trait BoardGame extends Game {
   }
 
   /* Start the game with the first player and the initial board state. */
-  final override def init = Turn(0, boardInit)
+  final override def init = Turn(playerInit, boardInit)
 
   /* Override transition to choose turn or check for the current player. */
   final override def transition(state: State, player: Player, move: Move) = state match {
