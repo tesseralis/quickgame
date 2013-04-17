@@ -87,4 +87,8 @@ class CheckersSpec extends FlatSpec with ShouldMatchers {
     val state = Turn(0, Map((3, 1) -> Piece(0), (4, 2) -> Piece(1)))
     transition(state, 0, Move((3, 1), Direction.RD)).get.asInstanceOf[Win].winner should be (0)
   }
+  it should "end the game in a win if opponent has no valid moves" in {
+    val state = Turn(0, Map((4, 4) -> Piece(0), (6, 6) -> Piece(0), (7, 7) -> Piece(1)))
+    transition(state, 0, Move((4, 4), Direction.RD)).get.asInstanceOf[Win].winner should be (0)
+  }
 }
